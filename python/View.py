@@ -13,12 +13,28 @@ class Application(tk.Frame):
         tk.Label(self, text="sort patrens").grid(column=0,row=0)
         tk.Button(self,text="new patren window",command=self.NewPatrenWindow).grid(column=1,row=0)
         tk.Label(self, text="line").grid(column=0,row=1)
-        tk.Button(self,text="show",command= lambda: self.patrenWindow.ChangePatren('line')).grid(column=1,row=1)
+        tk.Button(self,text="show",command= lambda: [self.ClearFrame(),self.LineOptions() ,self.patrenWindow.ChangePatren('line')]).grid(column=1,row=1)
         tk.Label(self, text="grid").grid(column=0,row=2)
-        tk.Button(self,text="show",command= lambda: self.patrenWindow.ChangePatren('grid')).grid(column=1,row=2)
+        tk.Button(self,text="show",command= lambda: [self.ClearFrame(),self.GridOptions() ,self.patrenWindow.ChangePatren('grid')]).grid(column=1,row=2)
 
     def NewPatrenWindow(self):
         self.patrenWindow = PatrenWindow(self)
+
+    def ClearFrame(self):
+        for widget in self.winfo_children():
+            try:
+                widget.grid_forget()
+            except:
+                pass
+
+    def LineOptions(self):
+        tk.Button(self,text="back",command= lambda: [self.ClearFrame(),self.FillFrame()]).grid(column=0,row=0)
+
+
+    def GridOptions(self):
+        tk.Button(self,text="back",command= lambda: [self.ClearFrame(),self.FillFrame()]).grid(column=0,row=0)
+
+    
 
 #klasse die het window voor de patronen aanmaakt, en de nodige functies om deze te tekenen oproept
 class PatrenWindow():
@@ -39,5 +55,5 @@ class PatrenWindow():
 mainWindow = Application()
 mainWindow.FillFrame()
 mainWindow.master.title("patren maker")
-mainWindow.master.geometry("400x400")
+mainWindow.master.geometry("400x200")
 mainWindow.mainloop()
