@@ -8,7 +8,10 @@ class Dimentions():
 
     #  Width   ##################################
     def setWidth(self,h):
-        self.Widt = int(h)
+        try:
+            self.Widt = int(h)
+        except:
+            print("geen int")
 
     def addWidth(self,a):
         self.Widt += a
@@ -25,7 +28,10 @@ class Dimentions():
 
     # Height ####################################
     def setHeight(self,h):
-        self.Height = int(h)
+        try:
+            self.Height = int(h)
+        except:
+            print("geen int")
 
     def addHeight(self,a):
         self.Height += a

@@ -1,7 +1,9 @@
 import tkinter as tk
 import Dimentions as Dm
+import SqlQuerries
 
 dimentions = Dm.Dimentions()
+db = SqlQuerries.DataBase()
 
 #klasse om het master window aan te maken
 class Application(tk.Frame):
@@ -36,17 +38,41 @@ class Application(tk.Frame):
         self.LineEntry = tk.Entry(self)
         self.LineEntry.grid(column=1,row=1)
         tk.Button(self,text="apply", command= lambda: [self.readLines(),self.patrenWindow.drawLines()]).grid(column=2,row=1)
+        tk.Button(self,text="save", command= lambda: self.saveLines()).grid(column=2,row=2)
 
-        tk.Button(self,text="-1",command= lambda: [dimentions.subWidth(1),dimentions.subHeight(1), self.patrenWindow.drawLines()]).grid(column=1,row=2)
-        tk.Button(self,text="+1",command= lambda: [dimentions.addWidth(1),dimentions.addHeight(1),self.patrenWindow.drawLines()]).grid(column=2,row=2)
+        f1 = tk.Frame(self)
+        tk.Button(f1,text="-1",command= lambda: [dimentions.subWidth(1),dimentions.subHeight(1), self.patrenWindow.drawLines()]).grid(column=0,row=0)
+        tk.Button(f1,text="+1",command= lambda: [dimentions.addWidth(1),dimentions.addHeight(1),self.patrenWindow.drawLines()]).grid(column=1,row=0)
+        f1.grid(column=1,row=2)
 
         tk.Button(self,text="fullscreen",command= lambda: self.patrenWindow.Fullscreen()).grid(column=2,row=0)
-
         tk.Button(self,text="rotate", command= lambda: [self.patrenWindow.toggleRot(),self.patrenWindow.drawLines()]).grid(column=1,row=3)
+
+        f2 = tk.Frame(self)
+        buttonList = tk.Text(f2)
+        buttonList.pack(side="left")
+        sb = tk.Scrollbar(f2,command=buttonList.yview)
+        sb.pack(side="right")
+        buttonList.configure(yscrollcommand=sb.set)
+
+        lijst = db.getLineSettings()
+        print(lijst)
+        for i in range(len(lijst)):
+            textKnop = str(lijst[0]) + lijst[1]
+            button = tk.Button(text=textKnop)
+            buttonList.window_create("end",window=button)
+            buttonList.insert("end","\n")
+        buttonList.configure(state="disabled")
+        f2.grid(column=3)
+
 
     def readLines(self):
         dimentions.setWidth(self.LineEntry.get())
         dimentions.setHeight(self.LineEntry.get())
+
+    def saveLines(self):
+        data = [self.LineEntry.get(),0]
+        self.SaveWindow(data,'line')
 
     def GridOptions(self):
         tk.Button(self,text="back",command= lambda: [self.ClearFrame(),self.FillFrame()]).grid(column=0,row=0)
@@ -60,13 +86,44 @@ class Application(tk.Frame):
         self.GridEntry_y = tk.Entry(self)
         self.GridEntry_y.grid(column=1,row=2)
         tk.Button(self,text="apply", command= lambda: [self.readGrid(),self.patrenWindow.drawGrid()]).grid(column=2,row=2)
+        tk.Button(self,text="save", command= lambda: self.saveGrid()).grid(column=2,row=3)
 
     def readGrid(self):
         dimentions.setWidth(self.GridEntry_x.get())
         dimentions.setHeight(self.GridEntry_y.get())
 
+    def saveGrid(self):
+        data = [self.GridEntry_x.get(),self.GridEntry_y.get()]
+        self.SaveWindow(data,'grid')
 
-        
+
+
+
+    def SaveWindow(self,data,kind):
+        self.sWindow = tk.Toplevel(self)
+        self.sWindow.title("save")
+        self.sWindow.grid()
+
+        tk.Label(self.sWindow,text="name:").grid(column=0,row=0)
+        self.sNameEntery = tk.Entry(self.sWindow)
+        self.sNameEntery.grid(column=1,row=0)
+        f1 = tk.Frame(self.sWindow)
+        tk.Button(f1,text="save",command= lambda: self.SaveDB(data,kind)).grid(column=1,row=0)
+        tk.Button(f1,text="cancel",command= lambda: self.SaveDestroy()).grid(column=0,row=0)
+        f1.grid(column=1,row=1)
+
+    def SaveDB(self,data,kind):
+        if kind == 'line':
+            db.insertLine(data[0],self.sNameEntery.get())
+        if kind == 'grid':
+            db.insertGrid(data[0],data[1],self.sNameEntery.get())
+
+        self.SaveDestroy()
+
+    def SaveDestroy(self):
+        self.sWindow.destroy()
+        self.sWindow.update()
+
 
     
 
@@ -117,7 +174,6 @@ class PatrenWindow():
                     self.canvas.create_rectangle((dimentions.getWidth()*i), (dimentions.getHeight()*j),((dimentions.getWidth()*i)+dimentions.getWidth()),((dimentions.getHeight()*j)+dimentions.getHeight()), outline="#000",fill="#000")
                 else:
                     pass #wit laten
-
 
 
 #start applicatie window
