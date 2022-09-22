@@ -1,12 +1,19 @@
-from distutils.cmd import Command
-from re import X
 import tkinter as tk
-from turtle import width
 import Dimentions as Dm
 import SqlQuerries
 
 dimentions = Dm.Dimentions()
 db = SqlQuerries.DataBase()
+
+class View():
+
+    def __init__(self):
+        #start applicatie window
+        mainWindow = Application()
+        mainWindow.FillFrame()
+        mainWindow.master.title("pattern maker")
+        mainWindow.master.geometry("1000x400")
+        mainWindow.mainloop()
 
 #klasse om het master window aan te maken
 class Application(tk.Frame):
@@ -211,11 +218,3 @@ class PatrenWindow():
                     self.canvas.create_rectangle((width*i), (height*j),((width*i)+width),((height*j)+height), outline="#000",fill="#000")
                 else:
                     pass #wit laten
-
-
-#start applicatie window
-mainWindow = Application()
-mainWindow.FillFrame()
-mainWindow.master.title("pattern maker")
-mainWindow.master.geometry("1000x400")
-mainWindow.mainloop()
