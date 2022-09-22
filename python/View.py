@@ -42,6 +42,10 @@ class Application(tk.Frame):
             except:
                 pass
 
+    def setEntrytext(self,text):
+        self.LineEntry.delete(0,tk.END)
+        self.LineEntry.insert(0,text)
+
     def LineOptions(self):
         tk.Button(self,text="back",command= lambda: [self.ClearFrame(),self.FillFrame()]).grid(column=0,row=0)
         tk.Label(self,text="width:").grid(column=0,row=1)
@@ -51,8 +55,8 @@ class Application(tk.Frame):
         tk.Button(self,text="save", command= lambda: self.saveLines()).grid(column=2,row=2)
 
         f1 = tk.Frame(self)
-        tk.Button(f1,text="-1",command= lambda: [dimentions.subWidth(1),dimentions.subHeight(1), self.patrenWindow.drawLines()]).grid(column=0,row=0)
-        tk.Button(f1,text="+1",command= lambda: [dimentions.addWidth(1),dimentions.addHeight(1),self.patrenWindow.drawLines()]).grid(column=1,row=0)
+        tk.Button(f1,text="-1",command= lambda: [dimentions.subWidth(1),dimentions.subHeight(1), self.patrenWindow.drawLines(),self.setEntrytext(dimentions.getWidth())]).grid(column=0,row=0)
+        tk.Button(f1,text="+1",command= lambda: [dimentions.addWidth(1),dimentions.addHeight(1),self.patrenWindow.drawLines(),self.setEntrytext(dimentions.getWidth())]).grid(column=1,row=0)
         f1.grid(column=1,row=2)
 
         tk.Button(self,text="fullscreen",command= lambda: self.patrenWindow.Fullscreen()).grid(column=2,row=0)
