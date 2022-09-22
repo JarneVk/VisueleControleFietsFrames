@@ -1,4 +1,7 @@
+from distutils.cmd import Command
+from re import X
 import tkinter as tk
+from turtle import width
 import Dimentions as Dm
 import SqlQuerries
 
@@ -54,17 +57,23 @@ class Application(tk.Frame):
         sb = tk.Scrollbar(f2,command=buttonList.yview)
         sb.pack(side="right")
         buttonList.configure(yscrollcommand=sb.set)
-
         lijst = db.getLineSettings()
-        print(lijst)
+        widthLijst = [i[1] for i in lijst]
+        nameLijst = [i[2] for i in lijst]
+        btn = []
         for i in range(len(lijst)):
-            textKnop = str(lijst[0]) + lijst[1]
-            button = tk.Button(text=textKnop)
-            buttonList.window_create("end",window=button)
+            textKnop = str(widthLijst[i])+"|" + nameLijst[i]
+            btn.append(tk.Button(text=textKnop, command=lambda c=i: self.processSavedButtonLine(btn[c].cget("text"))))
+            buttonList.window_create("end",window=btn[i])
             buttonList.insert("end","\n")
         buttonList.configure(state="disabled")
-        f2.grid(column=3)
+        f2.grid(column=3,row=0,rowspan=4)
 
+    def processSavedButtonLine(self,text):
+        lijst = text.split("|")
+        dimentions.setWidth(lijst[0])
+        dimentions.setHeight(lijst[0])
+        self.patrenWindow.drawLines()
 
     def readLines(self):
         dimentions.setWidth(self.LineEntry.get())
@@ -87,6 +96,31 @@ class Application(tk.Frame):
         self.GridEntry_y.grid(column=1,row=2)
         tk.Button(self,text="apply", command= lambda: [self.readGrid(),self.patrenWindow.drawGrid()]).grid(column=2,row=2)
         tk.Button(self,text="save", command= lambda: self.saveGrid()).grid(column=2,row=3)
+
+        f2 = tk.Frame(self)
+        buttonList = tk.Text(f2)
+        buttonList.pack(side="left")
+        sb = tk.Scrollbar(f2,command=buttonList.yview)
+        sb.pack(side="right")
+        buttonList.configure(yscrollcommand=sb.set)
+        lijst = db.getGridSettings()
+        widthLijst = [i[1] for i in lijst]
+        heightLijst = [i[2] for i in lijst]
+        nameLijst = [i[3] for i in lijst]
+        btn = []
+        for i in range(len(lijst)):
+            textKnop = str(widthLijst[i])+"|"+str(heightLijst[i])+"|" + nameLijst[i]
+            btn.append(tk.Button(text=textKnop, command=lambda c=i: self.processSavedButtonGrid(btn[c].cget("text"))))
+            buttonList.window_create("end",window=btn[i])
+            buttonList.insert("end","\n")
+        buttonList.configure(state="disabled")
+        f2.grid(column=3,row=0,rowspan=4)
+
+    def processSavedButtonGrid(self,text):
+        lijst = text.split("|")
+        dimentions.setWidth(lijst[0])
+        dimentions.setHeight(lijst[1])
+        self.patrenWindow.drawGrid()
 
     def readGrid(self):
         dimentions.setWidth(self.GridEntry_x.get())
@@ -158,20 +192,23 @@ class PatrenWindow():
 
     def drawLines(self):
         self.canvas.delete('all')
+        width = dimentions.getWidth()
+        height = dimentions.getHeight()
         if(self.lineRotation == 0):
             for i in range(0,int(dimentions.getHorizontal()),2):
-                self.canvas.create_rectangle(dimentions.getWidth()*i, 0, (dimentions.getWidth()*i)+dimentions.getWidth(), dimentions.resolution_y, outline="#000",fill="#000")
+                self.canvas.create_rectangle(width*i, 0, (width*i)+width, dimentions.resolution_y, outline="#000",fill="#000")
         else:
             for i in range(0,int(dimentions.getVertical()),2):
-                self.canvas.create_rectangle(0,dimentions.getHeight()*i,dimentions.resolution_x,(dimentions.getHeight()*i)+dimentions.getHeight(), outline="#000",fill="#000")
+                self.canvas.create_rectangle(0,dimentions.height*i,dimentions.resolution_x,(dimentions.height*i)+dimentions.height, outline="#000",fill="#000")
 
     def drawGrid(self):
         self.canvas.delete('all')
-        offset = int(0)
+        width = dimentions.getWidth()
+        height = dimentions.getHeight()
         for i in range(0,int(dimentions.getHorizontal()),1):
             for j in range(0,int(dimentions.getVertical()),1):
                 if((j+i)%2==0):
-                    self.canvas.create_rectangle((dimentions.getWidth()*i), (dimentions.getHeight()*j),((dimentions.getWidth()*i)+dimentions.getWidth()),((dimentions.getHeight()*j)+dimentions.getHeight()), outline="#000",fill="#000")
+                    self.canvas.create_rectangle((width*i), (height*j),((width*i)+width),((height*j)+height), outline="#000",fill="#000")
                 else:
                     pass #wit laten
 
@@ -180,5 +217,5 @@ class PatrenWindow():
 mainWindow = Application()
 mainWindow.FillFrame()
 mainWindow.master.title("pattern maker")
-mainWindow.master.geometry("400x200")
+mainWindow.master.geometry("1000x400")
 mainWindow.mainloop()

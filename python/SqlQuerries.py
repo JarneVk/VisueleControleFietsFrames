@@ -19,7 +19,7 @@ class DataBase():
 
     def getLineSettings(self):
         try:
-            self.cur.execute("SELECT width,name FROM LineSettings")
+            self.cur.execute("SELECT * FROM LineSettings")
             return self.cur.fetchall()
         except:
             print("db error getLineSettings")
@@ -31,3 +31,10 @@ class DataBase():
             self.con.commit()
         except:
             print("insertGrid error")
+
+    def getGridSettings(self):
+        try:
+            self.cur.execute("SELECT * FROM GridSettings")
+            return self.cur.fetchall()
+        except:
+            print("db error getGridSettings")
