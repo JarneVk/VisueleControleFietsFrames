@@ -1,6 +1,8 @@
+from time import sleep
 import tkinter as tk
 import Dimentions as Dm
 import SqlQuerries
+import threading
 
 dimentions = Dm.Dimentions()
 db = SqlQuerries.DataBase()
@@ -31,6 +33,8 @@ class Application(tk.Frame):
         tk.Button(self,text="show",command= lambda: [self.ClearFrame(),self.LineOptions() ,self.patrenWindow.ChangePatren('line')]).grid(column=1,row=1)
         tk.Label(self, text="grid").grid(column=0,row=2)
         tk.Button(self,text="show",command= lambda: [self.ClearFrame(),self.GridOptions() ,self.patrenWindow.ChangePatren('grid')]).grid(column=1,row=2)
+        tk.Label(self, text="presets").grid(column=0,row=3)
+        tk.Button(self,text="show",command= lambda: [self.ClearFrame(),self.presetOptions()]).grid(column=1,row=3)
 
     def NewPatrenWindow(self):
         self.patrenWindow = PatrenWindow(self)
@@ -142,6 +146,47 @@ class Application(tk.Frame):
         self.SaveWindow(data,'grid')
 
 
+    def presetOptions(self):
+        tk.Button(self,text="back",command= lambda: [self.ClearFrame(),self.FillFrame()]).grid(column=0,row=0)
+        tk.Button(self,text="fullscreen",command= lambda: self.patrenWindow.Fullscreen()).grid(column=2,row=0)
+
+        f1 = tk.Frame(self)
+        line = db.getLineSettings()
+        widthLine = [i[1] for i in line]
+        nameLine = [i[2] for i in line]
+        grid = db.getGridSettings()
+        widthGrid = [i[1] for i in grid]
+        heightGrid = [i[2] for i in grid]
+        nameGrid = [i[3] for i in grid]
+
+        tk.Label(f1,text="____Line presets____").grid(row=0,column=0)
+        grid_pos = 1
+        for i in range(len(line)):
+            tekst = str(widthLine[i]) + " | "+ str(nameLine[i])
+            tk.Label(f1,text=tekst).grid(row=grid_pos,column=0)
+            grid_pos += 1
+
+        tk.Label(f1,text="____Grid presets____").grid(row=grid_pos,column=0)
+        grid_pos += 1
+
+        for i in range(len(grid)):
+            tekst = str(widthGrid[i]) + " | "+ str(heightGrid[i])+" | "+str(nameGrid[i])
+            tk.Label(f1,text=tekst).grid(row=grid_pos,column=0)
+            grid_pos += 1
+
+        f1.grid(column=1,row=1)
+
+        tk.Button(self,text="cycle presets",command= lambda: self.cyclePresets(widthLine,widthGrid,heightGrid)).grid(column=1,row=2)
+
+    def cyclePresets(self,widthLine,widthGrid,heightGrid):
+        for i in range(len(widthLine)):
+            dimentions.setHeight(widthLine[i])
+            dimentions.setWidth(widthLine[i])
+            self.patrenWindow.drawLines()
+            print(i)
+            sleep(5)
+
+        
 
 
     def SaveWindow(self,data,kind):
@@ -210,7 +255,7 @@ class PatrenWindow():
                 self.canvas.create_rectangle(width*i, 0, (width*i)+width, dimentions.resolution_y, outline="#000",fill="#000")
         else:
             for i in range(0,int(dimentions.getVertical()),2):
-                self.canvas.create_rectangle(0,dimentions.height*i,dimentions.resolution_x,(dimentions.height*i)+dimentions.height, outline="#000",fill="#000")
+                self.canvas.create_rectangle(0,height*i,dimentions.resolution_x,(height*i)+height, outline="#000",fill="#000")
 
     def drawGrid(self):
         self.canvas.delete('all')
