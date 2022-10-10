@@ -55,7 +55,7 @@ class Application(tk.Frame):
         tk.Label(self,text="width:").grid(column=0,row=1)
         self.LineEntry = tk.Entry(self)
         self.LineEntry.grid(column=1,row=1)
-        tk.Button(self,text="apply", command= lambda: [self.readLines(),self.patrenWindow.drawLines()]).grid(column=2,row=1)
+        tk.Button(self,text="apply", command= lambda: [self.readLines(),threading.Thread(target=self.patrenWindow.drawLines).start()]).grid(column=2,row=1)
         tk.Button(self,text="save", command= lambda: self.saveLines()).grid(column=2,row=2)
 
         f1 = tk.Frame(self)
@@ -109,7 +109,7 @@ class Application(tk.Frame):
         tk.Label(self,text="Height:").grid(column=0,row=2)
         self.GridEntry_y = tk.Entry(self)
         self.GridEntry_y.grid(column=1,row=2)
-        tk.Button(self,text="apply", command= lambda: [self.readGrid(),self.patrenWindow.drawGrid()]).grid(column=2,row=2)
+        tk.Button(self,text="apply", command= lambda: [self.readGrid(),threading.Thread(target=self.patrenWindow.drawGrid).start()]).grid(column=2,row=2)
         tk.Button(self,text="save", command= lambda: self.saveGrid()).grid(column=2,row=3)
 
         f2 = tk.Frame(self)
@@ -176,18 +176,23 @@ class Application(tk.Frame):
 
         f1.grid(column=1,row=1)
 
-        tk.Button(self,text="cycle presets",command= lambda: self.cyclePresets(widthLine,widthGrid,heightGrid)).grid(column=1,row=2)
+        tk.Button(self,text="cycle presets",command= lambda: threading.Thread(target=self.cyclePresets, args=(widthLine,widthGrid,heightGrid)).start()).grid(column=1,row=2)
 
+#####################cycle presets ###########################################
     def cyclePresets(self,widthLine,widthGrid,heightGrid):
         for i in range(len(widthLine)):
             dimentions.setHeight(widthLine[i])
             dimentions.setWidth(widthLine[i])
             self.patrenWindow.drawLines()
-            print(i)
             sleep(5)
 
-        
+        for i in range(len(widthGrid)):
+            dimentions.setHeight(heightGrid[i])
+            dimentions.setWidth(widthGrid[i])
+            self.patrenWindow.drawGrid()
+            sleep(5)        
 
+#############################################################################
 
     def SaveWindow(self,data,kind):
         self.sWindow = tk.Toplevel(self)
@@ -247,6 +252,7 @@ class PatrenWindow():
             self.lineRotation = 1
 
     def drawLines(self):
+        print("teken lines")
         self.canvas.delete('all')
         width = dimentions.getWidth()
         height = dimentions.getHeight()
@@ -256,6 +262,7 @@ class PatrenWindow():
         else:
             for i in range(0,int(dimentions.getVertical()),2):
                 self.canvas.create_rectangle(0,height*i,dimentions.resolution_x,(height*i)+height, outline="#000",fill="#000")
+        self.canvas.update()
 
     def drawGrid(self):
         self.canvas.delete('all')
@@ -267,3 +274,5 @@ class PatrenWindow():
                     self.canvas.create_rectangle((width*i), (height*j),((width*i)+width),((height*j)+height), outline="#000",fill="#000")
                 else:
                     pass #wit laten
+        self.canvas.update()
+            
