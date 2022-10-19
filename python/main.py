@@ -1,3 +1,3 @@
-import View
+from PatrnGui import View
 
 v = View.View()

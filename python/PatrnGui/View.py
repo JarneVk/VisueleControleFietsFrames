@@ -1,7 +1,7 @@
 from time import sleep
 import tkinter as tk
-import Dimentions as Dm
-import SqlQuerries
+from PatrnGui import Dimentions as Dm
+from PatrnGui import SqlQuerries
 import threading
 
 dimentions = Dm.Dimentions()
