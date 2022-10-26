@@ -1,3 +1,4 @@
+from asyncio.windows_events import NULL
 from pyueye import ueye
 import numpy as np
 import cv2
@@ -23,7 +24,6 @@ class Camera ():
 
         #roep setupConnection op
         self.nRet = self.setupConnection()
-        self.testCamera()
 
     def setupConnection(self):
         
@@ -52,41 +52,41 @@ class Camera ():
         # Set the right color mode
         if int.from_bytes(self.sInfo.nColorMode.value, byteorder='big') == ueye.IS_COLORMODE_BAYER:
             # setup the color depth to the current windows setting
-            ueye.is_GetColorDepth(self.hCam, nBitsPerPixel, m_nColorMode)
-            bytes_per_pixel = int(nBitsPerPixel / 8)
+            ueye.is_GetColorDepth(self.hCam, self.nBitsPerPixel, self.m_nColorMode)
+            self.bytes_per_pixel = int(self.nBitsPerPixel / 8)
             print("IS_COLORMODE_BAYER: ", )
-            print("\tm_nColorMode: \t\t", m_nColorMode)
-            print("\tnBitsPerPixel: \t\t", nBitsPerPixel)
-            print("\tbytes_per_pixel: \t\t", bytes_per_pixel)
+            print("\tm_nColorMode: \t\t", self.m_nColorMode)
+            print("\tnBitsPerPixel: \t\t", self.nBitsPerPixel)
+            print("\tbytes_per_pixel: \t\t", self.bytes_per_pixel)
             print()
 
         elif int.from_bytes(self.sInfo.nColorMode.value, byteorder='big') == ueye.IS_COLORMODE_CBYCRY:
             # for color camera models use RGB32 mode
-            m_nColorMode = ueye.IS_CM_BGRA8_PACKED
-            nBitsPerPixel = ueye.INT(32)
-            bytes_per_pixel = int(nBitsPerPixel / 8)
+            self.m_nColorMode = ueye.IS_CM_BGRA8_PACKED
+            self.nBitsPerPixel = ueye.INT(32)
+            self.bytes_per_pixel = int(self.nBitsPerPixel / 8)
             print("IS_COLORMODE_CBYCRY: ", )
-            print("\tm_nColorMode: \t\t", m_nColorMode)
-            print("\tnBitsPerPixel: \t\t", nBitsPerPixel)
-            print("\tbytes_per_pixel: \t\t", bytes_per_pixel)
+            print("\tm_nColorMode: \t\t", self.m_nColorMode)
+            print("\tnBitsPerPixel: \t\t", self.nBitsPerPixel)
+            print("\tbytes_per_pixel: \t\t", self.bytes_per_pixel)
             print()
 
         elif int.from_bytes(self.sInfo.nColorMode.value, byteorder='big') == ueye.IS_COLORMODE_MONOCHROME:
             # for color camera models use RGB32 mode
-            m_nColorMode = ueye.IS_CM_MONO8
-            nBitsPerPixel = ueye.INT(8)
-            bytes_per_pixel = int(nBitsPerPixel / 8)
+            self.m_nColorMode = ueye.IS_CM_MONO8
+            self.nBitsPerPixel = ueye.INT(8)
+            self.bytes_per_pixel = int(self.nBitsPerPixel / 8)
             print("IS_COLORMODE_MONOCHROME: ", )
-            print("\tm_nColorMode: \t\t", m_nColorMode)
-            print("\tnBitsPerPixel: \t\t", nBitsPerPixel)
-            print("\tbytes_per_pixel: \t\t", bytes_per_pixel)
+            print("\tm_nColorMode: \t\t", self.m_nColorMode)
+            print("\tnBitsPerPixel: \t\t", self.nBitsPerPixel)
+            print("\tbytes_per_pixel: \t\t", self.bytes_per_pixel)
             print()
 
         else:
             # for monochrome camera models use Y8 mode
-            m_nColorMode = ueye.IS_CM_MONO8
-            nBitsPerPixel = ueye.INT(8)
-            bytes_per_pixel = int(nBitsPerPixel / 8)
+            self.m_nColorMode = ueye.IS_CM_MONO8
+            self.nBitsPerPixel = ueye.INT(8)
+            self.bytes_per_pixel = int(self.nBitsPerPixel / 8)
             print("else")
 
         # Can be used to set the size and position of an "area of interest"(AOI) within an image
@@ -107,7 +107,7 @@ class Camera ():
         print()
 
         # Allocates an image memory for an image having its dimensions defined by width and height and its color depth defined by nBitsPerPixel
-        nRet = ueye.is_AllocImageMem(self.hCam, width, height, nBitsPerPixel, self.pcImageMemory, self.MemID)
+        nRet = ueye.is_AllocImageMem(self.hCam, width, height, self.nBitsPerPixel, self.pcImageMemory, self.MemID)
         if nRet != ueye.IS_SUCCESS:
             print("is_AllocImageMem ERROR")
         else:
@@ -117,7 +117,7 @@ class Camera ():
                 print("is_SetImageMem ERROR")
             else:
                 # Set the desired color mode
-                nRet = ueye.is_SetColorMode(self.hCam, m_nColorMode)
+                nRet = ueye.is_SetColorMode(self.hCam, self.m_nColorMode)
 
 
 
@@ -127,7 +127,7 @@ class Camera ():
             print("is_CaptureVideo ERROR")
 
         # Enables the queue mode for existing image memory sequences
-        nRet = ueye.is_InquireImageMem(self.hCam, self.pcImageMemory, self.MemID, width, height, nBitsPerPixel, self.pitch)
+        nRet = ueye.is_InquireImageMem(self.hCam, self.pcImageMemory, self.MemID, width, height, self.nBitsPerPixel, self.pitch)
         if nRet != ueye.IS_SUCCESS:
             print("is_InquireImageMem ERROR")
         else:
@@ -158,12 +158,12 @@ class Camera ():
 
             #...and finally display it
             cv2.imshow("SimpleLive_Python_uEye_OpenCV", frame)
-
+            
             # Press q if you want to end the loop
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break
         #---------------------------------------------------------------------------------------------------------------------------------------
-
+        
         # Releases an image memory that was allocated using is_AllocImageMem() and removes it from the driver management
         ueye.is_FreeImageMem(self.hCam, self.pcImageMemory, self.MemID)
 
@@ -173,10 +173,28 @@ class Camera ():
         # Destroys the OpenCv windows
         cv2.destroyAllWindows()
 
+    #@return : gives back the pichture frame in Mat type
     def takePicture(self):
-        array = ueye.get_data(self.pcImageMemory, self.width, self.height, self.nBitsPerPixel, self.pitch, copy=False)
-        frame = np.reshape(array,(self.height.value, self.width.value, self.bytes_per_pixel))
-        frame = cv2.resize(frame,(0,0),fx=0.5, fy=0.5)
-        cv2.imshow("SimpleLive_Python_uEye_OpenCV", frame)
+        if self.nRet == ueye.IS_SUCCESS :
+            try:
+                array = ueye.get_data(self.pcImageMemory, self.width, self.height, self.nBitsPerPixel, self.pitch, copy=False)
+                frame = np.reshape(array,(self.height.value, self.width.value, self.bytes_per_pixel))
+                frame = cv2.resize(frame,(0,0),fx=0.5, fy=0.5)
+                return frame
+            except:
+                print('fout bij uitlewen van foto')
+
+        else:
+            print('fout in detectie van camera')
+        return NULL
 
 c = Camera()
+#c.testCamera()
+count = 0
+while True:
+    input('take picture')
+    frame = c.takePicture()
+    cv2.imshow('image',frame)
+    cv2.waitKey(0)
+    cv2.imwrite('python/Camera/tmp_pict/picture'+str(count)+'.jpg',frame)
+    count += 1
