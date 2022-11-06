@@ -7,6 +7,7 @@ import os
 import pandas as pd
 from torchvision.io import read_image
 from torchvision.transforms import transforms
+from torch.utils.data import DataLoader
 import torch.utils.data 
 import joblib
 
@@ -31,11 +32,15 @@ class CustomImageDataset(Dataset):
         return image, label
 
 dataset = CustomImageDataset("test_data_cat_dogs/classes.csv","test_data_cat_dogs/Img_dataset",transform=transforms.ToTensor())
-print(len(dataset))
-test_aant = len(dataset)*75
+print("dataset heeft een grootte van : "+str(len(dataset)))
+test_aant = int(len(dataset)*0.75)
 train_aant = len(dataset)-test_aant
+
 train_x, test_y = torch.utils.data.random_split(dataset,[train_aant,test_aant])
 
+train_dataloader = DataLoader(train_x, batch_size=64, shuffle=True)
+test_dataloader = DataLoader(test_y, batch_size=64, shuffle=True)
+
 #save the data
-joblib.dump(train_x,"python/CV/train_x.joblib")
-joblib.dump(test_y,"python/CV/test_y.joblib")
+joblib.dump(train_dataloader,"python/CV/train_x.joblib")
+joblib.dump(test_dataloader,"python/CV/test_y.joblib")
