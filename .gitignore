@@ -6,3 +6,4 @@ test_data_cat_dogs
 python/CV/CreateDataset_oud.py
 python/CV/test_y.joblib
 python/CV/train_x.joblib
+python/CV/Normalise_images.py
