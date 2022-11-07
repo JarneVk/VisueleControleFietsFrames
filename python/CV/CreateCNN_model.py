@@ -36,7 +36,7 @@ class CreateCNN_model():
                 loss = criterion(pred, label)
                 total_train_loss += loss.item()
 
-                for i in range(45):
+                for i in range(len(label)):
                     if label[i] == torch.max(pred[i], 0)[1]:
                         correct += 1
 
@@ -72,7 +72,7 @@ class CreateCNN_model():
 
         total_test_acc = correct/(idx + 1)
 
-        print(f'Epoch: {epoch} | Test Accuracy: {total_test_acc}')
+        print(f'Test Accuracy: {total_test_acc}')
 
         return train_loss, train_acc, total_test_loss, total_test_acc
 

@@ -37,7 +37,7 @@ class CreateDataset():
     def __init__(self) -> None:
         pass
 
-    def LoadDataset(csv_path,dir_path):
+    def LoadDataset(dir_path):
         # transfor ToTensor() -> converts images to tensors
         # Lambda -> labels to one-hot encoded tensor
         #dataset = CustomImageDataset(csv_path,dir_path)
@@ -46,24 +46,23 @@ class CreateDataset():
           transforms.ToTensor()
           ])
         batch_size = 64
-        dataset = datasets.ImageFolder('test_data_cat_dogs/data', transform=transform)
+        dataset = datasets.ImageFolder(dir_path, transform=transform)
         print("dataset has a size of : "+str(len(dataset)))
-        test_aant = int(len(dataset)*0.75)
-        train_aant = len(dataset)-test_aant
+        train_aant = int(len(dataset)*0.75)
+        test_aant = len(dataset)-train_aant
 
         train_x, test_y = torch.utils.data.random_split(dataset,[train_aant,test_aant])
 
         train_dataloader = DataLoader(train_x, batch_size=batch_size, shuffle=True)
         test_dataloader = DataLoader(test_y, batch_size=batch_size, shuffle=True)
-        print("data has been splitted and loaded")
+        print(f"data has been splitted ---- train :{len(train_x)} , test :{len(test_y)}")
         return train_dataloader, test_dataloader
 
 if __name__ == '__main__':
 
     #----------------------------------- creating dataset -------------------------------------------
-    CSV_PATH = "test_data_cat_dogs/classes.csv"
-    DIR_PATH = "test_data_cat_dogs/Img_dataset"
-    train_dataloader, test_dataloader = CreateDataset.LoadDataset(CSV_PATH,DIR_PATH)
+    DIR_PATH = "test_data_cat_dogs/data2"
+    train_dataloader, test_dataloader = CreateDataset.LoadDataset(DIR_PATH)
     train_loss, train_acc, test_loss, test_acc = CreateCNN_model.CreateCNN_model.AlexNet(train_dataloader,test_dataloader,10)
     plt.plot(train_loss)
     plt.show()
