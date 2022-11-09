@@ -1,8 +1,10 @@
 from time import sleep
 import tkinter as tk
+import os
 from PatrnGui import Dimentions as Dm
 from PatrnGui import SqlQuerries
 import threading
+
 
 dimentions = Dm.Dimentions()
 db = SqlQuerries.DataBase()
@@ -73,16 +75,19 @@ class Application(tk.Frame):
         sb.pack(side="right")
         buttonList.configure(yscrollcommand=sb.set)
         lijst = db.getLineSettings()
-        widthLijst = [i[1] for i in lijst]
-        nameLijst = [i[2] for i in lijst]
-        btn = []
-        for i in range(len(lijst)):
-            textKnop = str(widthLijst[i])+"|" + nameLijst[i]
-            btn.append(tk.Button(text=textKnop, command=lambda c=i: self.processSavedButtonLine(btn[c].cget("text"))))
-            buttonList.window_create("end",window=btn[i])
-            buttonList.insert("end","\n")
-        buttonList.configure(state="disabled")
-        f2.grid(column=3,row=0,rowspan=4)
+        try:
+            widthLijst = [i[1] for i in lijst]
+            nameLijst = [i[2] for i in lijst]
+            btn = []
+            for i in range(len(lijst)):
+                textKnop = str(widthLijst[i])+"|" + nameLijst[i]
+                btn.append(tk.Button(text=textKnop, command=lambda c=i: self.processSavedButtonLine(btn[c].cget("text"))))
+                buttonList.window_create("end",window=btn[i])
+                buttonList.insert("end","\n")
+            buttonList.configure(state="disabled")
+            f2.grid(column=3,row=0,rowspan=4)
+        except TypeError as e:
+            pass
 
     def processSavedButtonLine(self,text):
         lijst = text.split("|")
@@ -118,17 +123,20 @@ class Application(tk.Frame):
         sb = tk.Scrollbar(f2,command=buttonList.yview)
         sb.pack(side="right")
         buttonList.configure(yscrollcommand=sb.set)
-        lijst = db.getGridSettings()
-        widthLijst = [i[1] for i in lijst]
-        heightLijst = [i[2] for i in lijst]
-        nameLijst = [i[3] for i in lijst]
-        btn = []
-        for i in range(len(lijst)):
-            textKnop = str(widthLijst[i])+"|"+str(heightLijst[i])+"|" + nameLijst[i]
-            btn.append(tk.Button(text=textKnop, command=lambda c=i: self.processSavedButtonGrid(btn[c].cget("text"))))
-            buttonList.window_create("end",window=btn[i])
-            buttonList.insert("end","\n")
-        buttonList.configure(state="disabled")
+        try:
+            lijst = db.getGridSettings()
+            widthLijst = [i[1] for i in lijst]
+            heightLijst = [i[2] for i in lijst]
+            nameLijst = [i[3] for i in lijst]
+            btn = []
+            for i in range(len(lijst)):
+                textKnop = str(widthLijst[i])+"|"+str(heightLijst[i])+"|" + nameLijst[i]
+                btn.append(tk.Button(text=textKnop, command=lambda c=i: self.processSavedButtonGrid(btn[c].cget("text"))))
+                buttonList.window_create("end",window=btn[i])
+                buttonList.insert("end","\n")
+            buttonList.configure(state="disabled")
+        except TypeError as e:
+            pass
         f2.grid(column=3,row=0,rowspan=4)
 
     def processSavedButtonGrid(self,text):
@@ -151,30 +159,33 @@ class Application(tk.Frame):
         tk.Button(self,text="fullscreen",command= lambda: self.patrenWindow.Fullscreen()).grid(column=2,row=0)
 
         f1 = tk.Frame(self)
-        line = db.getLineSettings()
-        widthLine = [i[1] for i in line]
-        nameLine = [i[2] for i in line]
-        grid = db.getGridSettings()
-        widthGrid = [i[1] for i in grid]
-        heightGrid = [i[2] for i in grid]
-        nameGrid = [i[3] for i in grid]
+        try:
+            line = db.getLineSettings()
+            widthLine = [i[1] for i in line]
+            nameLine = [i[2] for i in line]
+            grid = db.getGridSettings()
+            widthGrid = [i[1] for i in grid]
+            heightGrid = [i[2] for i in grid]
+            nameGrid = [i[3] for i in grid]
 
-        tk.Label(f1,text="____Line presets____").grid(row=0,column=0)
-        grid_pos = 1
-        for i in range(len(line)):
-            tekst = str(widthLine[i]) + " | "+ str(nameLine[i])
-            tk.Label(f1,text=tekst).grid(row=grid_pos,column=0)
+            tk.Label(f1,text="____Line presets____").grid(row=0,column=0)
+            grid_pos = 1
+            for i in range(len(line)):
+                tekst = str(widthLine[i]) + " | "+ str(nameLine[i])
+                tk.Label(f1,text=tekst).grid(row=grid_pos,column=0)
+                grid_pos += 1
+
+            tk.Label(f1,text="____Grid presets____").grid(row=grid_pos,column=0)
             grid_pos += 1
 
-        tk.Label(f1,text="____Grid presets____").grid(row=grid_pos,column=0)
-        grid_pos += 1
+            for i in range(len(grid)):
+                tekst = str(widthGrid[i]) + " | "+ str(heightGrid[i])+" | "+str(nameGrid[i])
+                tk.Label(f1,text=tekst).grid(row=grid_pos,column=0)
+                grid_pos += 1
 
-        for i in range(len(grid)):
-            tekst = str(widthGrid[i]) + " | "+ str(heightGrid[i])+" | "+str(nameGrid[i])
-            tk.Label(f1,text=tekst).grid(row=grid_pos,column=0)
-            grid_pos += 1
-
-        f1.grid(column=1,row=1)
+            f1.grid(column=1,row=1)
+        except TypeError as e:
+            pass
 
         tk.Button(self,text="cycle presets",command= lambda: threading.Thread(target=self.cyclePresets, args=(widthLine,widthGrid,heightGrid)).start()).grid(column=1,row=2)
 
@@ -236,13 +247,10 @@ class PatrenWindow():
         self.window.attributes("-fullscreen",True)
 
     def ChangePatren(self,patren):
-        match patren:
-            case 'line': self.drawLines()
-            
-
-            case 'grid': self.drawGrid()
-            
-            case default: pass
+        if(patren=='line'):
+            self.drawLines()
+        elif(patren=='grid'):
+            self.drawGrid()
 
 
     def toggleRot(self):
