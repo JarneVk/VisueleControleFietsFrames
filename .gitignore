@@ -1,9 +1,12 @@
 python/__pycache__
+python/CV/__pycache__
 python/Camera/imageProcessing_old.py
 python/Camera/tmp_pict
+python/Camera/tmp_out
 VisueleControleFietsFrames.db
 test_data_cat_dogs
 python/CV/CreateDataset_oud.py
 python/CV/test_y.joblib
 python/CV/train_x.joblib
 python/CV/Normalise_images.py
+python/PatrnGui/__pycache__
