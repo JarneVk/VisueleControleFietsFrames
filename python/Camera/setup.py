@@ -194,7 +194,7 @@ count = 0
 while True:
     input('take picture')
     frame = c.takePicture()
-    cv2.imshow('image',frame)
-    cv2.waitKey(0)
+    #cv2.imshow('image',frame)
+    #cv2.waitKey(0)
     cv2.imwrite('python/Camera/tmp_pict/picture'+str(count)+'.jpg',frame)
     count += 1
