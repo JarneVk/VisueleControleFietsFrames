@@ -27,6 +27,7 @@ class imProcessing():
 
 low_blue = np.array([101, 30, 14])
 high_blue = np.array([170, 255, 255])
+
 for i in range(0,29,1):
     print('python/Camera/tmp_pict/picture'+str(i)+'.jpg')
     im = cv2.imread('python/Camera/tmp_pict/picture'+str(i)+'.jpg')
