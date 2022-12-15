@@ -31,11 +31,11 @@ class CreateDataset():
         return train_dataloader, test_dataloader
 
 class Resnet50_CreateModel():
-    def __init__(self,train_dataloader, test_dataloader):
+    def __init__(self,train_dataloader, test_dataloader,num_epochs=3):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.traindata = train_dataloader
         self.testdata = test_dataloader
-        self.train()
+        self.num_epochs = num_epochs
 
     def train(self):
         model = models.resnet50(weights='DEFAULT').to(self.device)
@@ -49,10 +49,10 @@ class Resnet50_CreateModel():
 
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(model.fc.parameters())
-        model_trained = self.train_model(model, criterion, optimizer, num_epochs=3)
+        model_trained = self.train_model(model, criterion, optimizer, self.num_epochs)
         return model_trained
 
-    def train_model(self,model, criterion, optimizer,num_epochs=3):
+    def train_model(self,model, criterion, optimizer,num_epochs):
         for epoch in range(num_epochs):
             print('Epoch {}/{}'.format(epoch+1, num_epochs))
             print('-' * 10)
@@ -84,7 +84,7 @@ class Resnet50_CreateModel():
                     epoch_loss = running_loss / (idx + 1)
                     epoch_acc = running_corrects.double() / (idx + 1)
                 else:
-                    for (inputs, labels) in enumerate(self.testdata):
+                    for idx, (inputs, labels) in enumerate(self.testdata):
                         inputs = inputs.to(self.device)
                         labels = labels.to(self.device)
 
@@ -119,8 +119,9 @@ if __name__ == '__main__':
     DIR_PATH = "dataset"
     train_dataloader, test_dataloader = CreateDataset.LoadDataset(DIR_PATH)
     #-----------------------------------   train model    -------------------------------------------
-    model_trained = Resnet50_CreateModel(train_dataloader, test_dataloader)
+    resnet = Resnet50_CreateModel(train_dataloader, test_dataloader,10)
+    model_trained = resnet.train()
     #-----------------------------------    save model    -------------------------------------------
-    torch.save(model_trained.state_dict(), 'models/pytorch/weights.h5') 
+    torch.save(model_trained.state_dict(), 'python/CV/Resnet50/weights.h5') 
     #-----------------------------------    load model    -------------------------------------------
     #model = Resnet50_CreateModel().loadModel()
