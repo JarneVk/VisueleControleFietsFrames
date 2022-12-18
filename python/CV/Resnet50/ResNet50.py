@@ -7,6 +7,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 import torch.optim as optim
 import sys
+import time
 
 class CreateDataset():
     def __init__(self) -> None:
@@ -14,13 +15,13 @@ class CreateDataset():
 
     def LoadDataset(dir_path):
         transform = transforms.Compose([
-          transforms.Resize((64, 64)),
+          transforms.Resize((160,160)),
           transforms.ToTensor()
           ])
-        batch_size = 64
+        batch_size = 2
         dataset = datasets.ImageFolder(dir_path, transform=transform)
         print("dataset has a size of : "+str(len(dataset)))
-        train_aant = int(len(dataset)*0.75)
+        train_aant = int(len(dataset)*0.80)
         test_aant = len(dataset)-train_aant
 
         train_x, test_y = torch.utils.data.random_split(dataset,[train_aant,test_aant])
@@ -28,7 +29,7 @@ class CreateDataset():
         train_dataloader = DataLoader(train_x, batch_size=batch_size, shuffle=True)
         test_dataloader = DataLoader(test_y, batch_size=batch_size, shuffle=True)
         print(f"data has been splitted ---- train :{len(train_x)} , test :{len(test_y)}")
-        return train_dataloader, test_dataloader
+        return train_dataloader, test_dataloader,len(train_x),len(test_y)
 
 class Resnet50_CreateModel():
     def __init__(self,train_dataloader, test_dataloader,num_epochs=3):
@@ -37,7 +38,7 @@ class Resnet50_CreateModel():
         self.testdata = test_dataloader
         self.num_epochs = num_epochs
 
-    def train(self):
+    def train(self,tsize,valsize):
         model = models.resnet50(weights='DEFAULT').to(self.device)
         for param in model.parameters():
             param.requires_grad = False
@@ -49,14 +50,16 @@ class Resnet50_CreateModel():
 
         criterion = nn.CrossEntropyLoss()
         optimizer = optim.Adam(model.fc.parameters())
-        model_trained = self.train_model(model, criterion, optimizer, self.num_epochs)
+        model_trained = self.train_model(model, criterion, optimizer,tsize,valsize, self.num_epochs)
         return model_trained
 
-    def train_model(self,model, criterion, optimizer,num_epochs):
+    def train_model(self,model, criterion, optimizer,tsize,valsize,num_epochs):
+        print(f"train :{tsize} , test :{valsize}")
+        t_start = time.time()
         for epoch in range(num_epochs):
             print('Epoch {}/{}'.format(epoch+1, num_epochs))
             print('-' * 10)
-
+            start_epoch = time.time()
             for phase in ['train', 'validation']:
                 if phase == 'train':
                     model.train()
@@ -81,8 +84,9 @@ class Resnet50_CreateModel():
                         running_loss += loss.item() * inputs.size(0)
                         running_corrects += torch.sum(preds == labels.data)
 
-                    epoch_loss = running_loss / (idx + 1)
-                    epoch_acc = running_corrects.double() / (idx + 1)
+                    epoch_loss = running_loss / float(tsize) 
+                    print(f"correct counter :{running_corrects} of the {tsize}")
+                    epoch_acc = running_corrects.double() / float(tsize)
                 else:
                     for idx, (inputs, labels) in enumerate(self.testdata):
                         inputs = inputs.to(self.device)
@@ -94,6 +98,9 @@ class Resnet50_CreateModel():
                         _, preds = torch.max(outputs, 1)
                         running_loss += loss.item() * inputs.size(0)
                         running_corrects += torch.sum(preds == labels.data)
+                    epoch_loss = running_loss / valsize 
+                    print(f"correct counter :{running_corrects} of the {valsize}")
+                    epoch_acc = running_corrects.double() / valsize 
 
 
 
@@ -101,6 +108,10 @@ class Resnet50_CreateModel():
                 print('{} loss: {:.4f}, acc: {:.4f}'.format(phase,
                                                             epoch_loss,
                                                             epoch_acc))
+                tijd = time.time() - start_epoch
+                print(f"time :{tijd}")
+        t_tijd = time.time() - t_start
+        print(f"total time : {t_tijd}")
         return model
 
     def loadModel():
@@ -114,13 +125,13 @@ class Resnet50_CreateModel():
         return model
 
 if __name__ == '__main__':
-    sys.path.append("/home/ubuntu/.local/lib/python3.10/site-packages/nvidia/cudnn/lib/libcudnn_cnn_infer.so.8")
+    #sys.path.append("/home/ubuntu/.local/lib/python3.10/site-packages/nvidia/cudnn/lib/libcudnn_cnn_infer.so.8")
     #----------------------------------- creating dataset -------------------------------------------
     DIR_PATH = "dataset"
-    train_dataloader, test_dataloader = CreateDataset.LoadDataset(DIR_PATH)
+    train_dataloader, test_dataloader,tsize,valsize = CreateDataset.LoadDataset(DIR_PATH)
     #-----------------------------------   train model    -------------------------------------------
-    resnet = Resnet50_CreateModel(train_dataloader, test_dataloader,10)
-    model_trained = resnet.train()
+    resnet = Resnet50_CreateModel(train_dataloader, test_dataloader,3)
+    model_trained = resnet.train(tsize,valsize)
     #-----------------------------------    save model    -------------------------------------------
     torch.save(model_trained.state_dict(), 'python/CV/Resnet50/weights.h5') 
     #-----------------------------------    load model    -------------------------------------------
