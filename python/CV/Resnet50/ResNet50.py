@@ -6,8 +6,12 @@ from torch.utils.data import Dataset, DataLoader
 import torch.nn as nn
 from torch.nn import functional as F
 import torch.optim as optim
+from torch.autograd import Variable
 import sys
 import time
+from PIL import Image
+import joblib
+import pandas
 
 class CreateDataset():
     def __init__(self) -> None:
@@ -15,11 +19,12 @@ class CreateDataset():
 
     def LoadDataset(dir_path):
         transform = transforms.Compose([
-          transforms.Resize((160,160)),
+          transforms.Resize((30,30)),
           transforms.ToTensor()
           ])
-        batch_size = 2
+        batch_size = 4
         dataset = datasets.ImageFolder(dir_path, transform=transform)
+        classmapping = dataset.class_to_idx
         print("dataset has a size of : "+str(len(dataset)))
         train_aant = int(len(dataset)*0.80)
         test_aant = len(dataset)-train_aant
@@ -29,7 +34,8 @@ class CreateDataset():
         train_dataloader = DataLoader(train_x, batch_size=batch_size, shuffle=True)
         test_dataloader = DataLoader(test_y, batch_size=batch_size, shuffle=True)
         print(f"data has been splitted ---- train :{len(train_x)} , test :{len(test_y)}")
-        return train_dataloader, test_dataloader,len(train_x),len(test_y)
+        joblib.dump(classmapping,'python/CV/Resnet50/classmapping')
+        return train_dataloader, test_dataloader,len(train_x),len(test_y),test_y
 
 class Resnet50_CreateModel():
     def __init__(self,train_dataloader, test_dataloader,num_epochs=3):
@@ -37,6 +43,7 @@ class Resnet50_CreateModel():
         self.traindata = train_dataloader
         self.testdata = test_dataloader
         self.num_epochs = num_epochs
+        self.classmap = joblib.load('python/CV/Resnet50/classmapping')
 
     def train(self,tsize,valsize):
         model = models.resnet50(weights='DEFAULT').to(self.device)
@@ -88,6 +95,10 @@ class Resnet50_CreateModel():
                     print(f"correct counter :{running_corrects} of the {tsize}")
                     epoch_acc = running_corrects.double() / float(tsize)
                 else:
+                    rp=0
+                    fp=0
+                    fn=0
+                    rn = 0
                     for idx, (inputs, labels) in enumerate(self.testdata):
                         inputs = inputs.to(self.device)
                         labels = labels.to(self.device)
@@ -98,41 +109,150 @@ class Resnet50_CreateModel():
                         _, preds = torch.max(outputs, 1)
                         running_loss += loss.item() * inputs.size(0)
                         running_corrects += torch.sum(preds == labels.data)
+                        
+
                     epoch_loss = running_loss / valsize 
                     print(f"correct counter :{running_corrects} of the {valsize}")
                     epoch_acc = running_corrects.double() / valsize 
-
-
-
 
                 print('{} loss: {:.4f}, acc: {:.4f}'.format(phase,
                                                             epoch_loss,
                                                             epoch_acc))
                 tijd = time.time() - start_epoch
                 print(f"time :{tijd}")
+
         t_tijd = time.time() - t_start
         print(f"total time : {t_tijd}")
         return model
 
-    def loadModel():
+
+class Resnet50_testModel():
+    def __init__(self,model):
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.model = model
+        self.mapping = joblib.load('python/CV/Resnet50/classmapping')
+        self.transform = transforms.Compose([
+          transforms.Resize((30,30)),
+          transforms.ToTensor()
+          ])
+
+    def loadModel(path):
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        model = models.resnet50(pretrained=False).to(device)
+        model = models.resnet50(weights=None).to(device)
         model.fc = nn.Sequential(
                nn.Linear(2048, 128),
                nn.ReLU(inplace=True),
                nn.Linear(128, 2)).to(device)
-        model.load_state_dict(torch.load('models/pytorch/weights.h5'))
+        model.load_state_dict(torch.load(path))
         return model
 
+    def imageLoader(self,input):
+        imsize = 30
+        loader = transforms.Compose([transforms.Resize(imsize), transforms.ToTensor()])
+        image = Image.open(input)
+        image = loader(image).float()
+        image = Variable(image, requires_grad=True)
+        image = image.unsqueeze(0)
+        return image.cuda()
+    
+    def predictSingleImage(self,input):
+        im_tensor = self.imageLoader(input)
+        predict = self.predict(im_tensor)
+        print(f"predicted:{predict}")
+
+    def predictDataset(self,dir_path):
+        rp=0
+        fp=0
+        fn=0
+        rn = 0
+
+        dataset = datasets.ImageFolder(dir_path, transform=self.transform)
+        for i in range(len(dataset)):
+            img,label = dataset[i]
+            img = Variable(img, requires_grad=True)
+            img = img.unsqueeze(0)
+            image = img.to(self.device)
+            prediction = self.predict(image)
+            expected = list(self.mapping)[label]
+            #print(f"predicted: {prediction} <-> expected: {expected}")
+            if prediction == "good":
+                if expected == "good":
+                    rp+=1
+                else:
+                    fp+=1
+            elif prediction == "bad":
+                if expected == "bad":
+                    rn+=1
+                else:
+                    fn+=1
+        data = [[rp,fp],[fn,rn]]
+        headers=["good", "bad"]
+        print("_____|expacted")
+        print("pred |")
+        print(pandas.DataFrame(data, headers, headers))
+
+    def predictDatasetBySetInput(self,dataset):
+        rp=0
+        fp=0
+        fn=0
+        rn = 0
+        for i in range(len(dataset)):
+            img,label = dataset[i]
+            img = Variable(img, requires_grad=True)
+            img = img.unsqueeze(0)
+            image = img.to(self.device)
+            prediction = self.predict(image)
+            expected = list(self.mapping)[label]
+            #print(f"predicted: {prediction} <-> expected: {expected}")
+            if prediction == "good":
+                if expected == "good":
+                    rp+=1
+                else:
+                    fp+=1
+            elif prediction == "bad":
+                if expected == "bad":
+                    rn+=1
+                else:
+                    fn+=1
+        data = [[rp,fp],[fn,rn]]
+        headers=["good", "bad"]
+        print("_____|expacted")
+        print("pred |")
+        print(pandas.DataFrame(data, headers, headers))
+            
+
+
+    def predict(self,input):
+        self.model.eval()
+        with torch.no_grad():
+            pred = self.model(input)
+            pred_idx = pred[0].argmax(0)
+            #print(f"classmap:{self.mapping} -> index: {pred_idx.item()}")
+            predicted = list(self.mapping)[pred_idx.item()]
+        return predicted
+
 if __name__ == '__main__':
-    #sys.path.append("/home/ubuntu/.local/lib/python3.10/site-packages/nvidia/cudnn/lib/libcudnn_cnn_infer.so.8")
-    #----------------------------------- creating dataset -------------------------------------------
     DIR_PATH = "dataset"
-    train_dataloader, test_dataloader,tsize,valsize = CreateDataset.LoadDataset(DIR_PATH)
-    #-----------------------------------   train model    -------------------------------------------
-    resnet = Resnet50_CreateModel(train_dataloader, test_dataloader,3)
-    model_trained = resnet.train(tsize,valsize)
-    #-----------------------------------    save model    -------------------------------------------
-    torch.save(model_trained.state_dict(), 'python/CV/Resnet50/weights.h5') 
-    #-----------------------------------    load model    -------------------------------------------
-    #model = Resnet50_CreateModel().loadModel()
+    input_str = input("test or train? :")
+    if input_str == "train":
+        #----------------------------------- creating dataset -------------------------------------------
+        train_dataloader, test_dataloader,tsize,valsize,test_y = CreateDataset.LoadDataset(DIR_PATH)
+        #-----------------------------------   train model    -------------------------------------------
+        resnet = Resnet50_CreateModel(train_dataloader, test_dataloader,10)
+        model_trained = resnet.train(tsize,valsize)
+        #-----------------------------------    save model    -------------------------------------------
+        torch.save(model_trained.state_dict(), 'python/CV/Resnet50/weights.h5') 
+
+        Resnet50_testModel(model_trained).predictDatasetBySetInput(test_y)
+
+    elif input_str == "test":
+        #-----------------------------------    load model    -------------------------------------------
+        model = Resnet50_testModel.loadModel('python/CV/Resnet50/weights.h5')
+
+        #-----------------------------------    test model    -------------------------------------------
+        testnet = Resnet50_testModel(model)
+        #predict = testnet.predictSingleImage('dataset/bad/bad_02.jpg')
+        testnet.predictDataset(DIR_PATH)
+        
+
+

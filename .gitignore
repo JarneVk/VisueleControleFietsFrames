@@ -10,3 +10,8 @@ python/CV/test_y.joblib
 python/CV/train_x.joblib
 python/CV/Normalise_images.py
 python/PatrnGui/__pycache__
+python/dogs-vs-cats
+splitdata.py
+python/CV/Resnet50/weights.h5
+dataset
+dogs-vs-cats

@@ -190,7 +190,7 @@ class Camera ():
 
 c = Camera()
 #c.testCamera()
-count = 0
+count = 75
 while True:
     input('take picture')
     frame = c.takePicture()
