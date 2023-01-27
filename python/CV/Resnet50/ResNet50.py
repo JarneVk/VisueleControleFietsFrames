@@ -22,7 +22,7 @@ class CreateDataset():
           transforms.Resize((30,30)),
           transforms.ToTensor()
           ])
-        batch_size = 4
+        batch_size = 8
         dataset = datasets.ImageFolder(dir_path, transform=transform)
         classmapping = dataset.class_to_idx
         print("dataset has a size of : "+str(len(dataset)))
@@ -46,7 +46,7 @@ class Resnet50_CreateModel():
         self.classmap = joblib.load('python/CV/Resnet50/classmapping')
 
     def train(self,tsize,valsize):
-        model = models.resnet50(weights='DEFAULT').to(self.device)
+        model = models.resnet50(weights='DEFAULT').to(self.device)                                           # for pretrained weights='DEFAULT'
         for param in model.parameters():
             param.requires_grad = False
 
@@ -79,7 +79,6 @@ class Resnet50_CreateModel():
                     for idx, (inputs, labels) in enumerate(self.traindata):
                         inputs = inputs.to(self.device)
                         labels = labels.to(self.device)
-
                         outputs = model(inputs)
                         loss = criterion(outputs, labels)
 
@@ -187,7 +186,7 @@ class Resnet50_testModel():
                     fn+=1
         data = [[rp,fp],[fn,rn]]
         headers=["good", "bad"]
-        print("_____|expacted")
+        print("_____|expected")
         print("pred |")
         print(pandas.DataFrame(data, headers, headers))
 
@@ -216,7 +215,7 @@ class Resnet50_testModel():
                     fn+=1
         data = [[rp,fp],[fn,rn]]
         headers=["good", "bad"]
-        print("_____|expacted")
+        print("_____|expected")
         print("pred |")
         print(pandas.DataFrame(data, headers, headers))
             
@@ -232,13 +231,13 @@ class Resnet50_testModel():
         return predicted
 
 if __name__ == '__main__':
-    DIR_PATH = "dataset"
+    DIR_PATH = "dataset_2"
     input_str = input("test or train? :")
     if input_str == "train":
         #----------------------------------- creating dataset -------------------------------------------
         train_dataloader, test_dataloader,tsize,valsize,test_y = CreateDataset.LoadDataset(DIR_PATH)
         #-----------------------------------   train model    -------------------------------------------
-        resnet = Resnet50_CreateModel(train_dataloader, test_dataloader,10)
+        resnet = Resnet50_CreateModel(train_dataloader, test_dataloader,20)
         model_trained = resnet.train(tsize,valsize)
         #-----------------------------------    save model    -------------------------------------------
         torch.save(model_trained.state_dict(), 'python/CV/Resnet50/weights.h5') 

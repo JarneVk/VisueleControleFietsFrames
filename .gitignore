@@ -13,5 +13,7 @@ python/PatrnGui/__pycache__
 python/dogs-vs-cats
 splitdata.py
 python/CV/Resnet50/weights.h5
+python/CV/Resnet50/weights_best_yet.h5
 dataset
 dogs-vs-cats
+dataset_2
