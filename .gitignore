@@ -18,3 +18,5 @@ dataset
 dogs-vs-cats
 dataset_2
 python/CV/Resnet50/__pycache__
+python/Camera/segmentated
+makeDataset/__pycache__

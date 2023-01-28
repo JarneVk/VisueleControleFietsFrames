@@ -27,11 +27,15 @@ class imProcessing():
         x,y,w,h = cv2.boundingRect(cnt)
         crop_mask = mask[y:y+h,x:x+w]
         crop_img = img[y:y+h,x:x+w]
-
         image = cv2.bitwise_and(crop_img, crop_img, mask=crop_mask)
+        return image
+
+    def treshLines(image):
+
         img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         blur = cv2.GaussianBlur(img,(3,3),0)
-        ret,threshhold = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        #ret,threshhold = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        ret,threshhold = cv2.threshold(blur,140,255,cv2.THRESH_BINARY)
         cnt = cv2.findNonZero(threshhold)
         x,y,w,h = cv2.boundingRect(cnt)
         output = threshhold[y:y+h,x:x+w]
@@ -42,6 +46,7 @@ class imProcessing():
         high_blue = np.array([170, 255, 255])
         out = imProcessing.removeColor(low_blue,high_blue,img)
         out = imProcessing.threshhold(img,out)
+        out = imProcessing.treshLines(out)
         return out
         
 if __name__ == '__main__':
@@ -53,4 +58,9 @@ if __name__ == '__main__':
         im = cv2.imread(os.path.join("python/Camera/for_proces",filename))
         output = imProcessing.processChain(im)
         cv2.imwrite(os.path.join("python/Camera/out",filename),output)
+
+        out2 = imProcessing.removeColor(low_blue,high_blue,im)
+        output = imProcessing.threshhold(im,out2)
+        cv2.imwrite(os.path.join("python/Camera/segmentated",filename),output)
+
         
