@@ -31,18 +31,23 @@ class imProcessing():
         image = cv2.bitwise_and(crop_img, crop_img, mask=crop_mask)
         img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         blur = cv2.GaussianBlur(img,(3,3),0)
-        ret,threshhold = cv2.threshold(img,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        ret,threshhold = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
         return threshhold
 
+    def processChain(img):
+        low_blue = np.array([101, 30, 14])
+        high_blue = np.array([170, 255, 255])
+        out = imProcessing.removeColor(low_blue,high_blue,img)
+        out = imProcessing.threshhold(img,out)
+        return out
         
+if __name__ == '__main__':
+    low_blue = np.array([101, 30, 14])
+    high_blue = np.array([170, 255, 255])
 
-low_blue = np.array([101, 30, 14])
-high_blue = np.array([170, 255, 255])
-
-for filename in os.listdir("python/Camera/for_proces"):
-    print(filename)
-    im = cv2.imread(os.path.join("python/Camera/for_proces",filename))
-    output = imProcessing.removeColor(low_blue,high_blue,im)
-    output = imProcessing.threshhold(im,output)
-    cv2.imwrite(os.path.join("python/Camera/out",filename),output)
+    for filename in os.listdir("python/Camera/for_proces"):
+        print(filename)
+        im = cv2.imread(os.path.join("python/Camera/for_proces",filename))
+        output = imProcessing.processChain(im)
+        cv2.imwrite(os.path.join("python/Camera/out",filename),output)
         

@@ -158,6 +158,7 @@ class Resnet50_testModel():
         im_tensor = self.imageLoader(input)
         predict = self.predict(im_tensor)
         print(f"predicted:{predict}")
+        return predict
 
     def predictDataset(self,dir_path):
         rp=0
