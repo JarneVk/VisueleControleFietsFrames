@@ -21,8 +21,20 @@ class imProcessing():
         erosion = cv2.erode(thresh,kernel,iterations = 1)
         kernel = np.ones((5,5),np.uint8)
         mask = cv2.dilate(erosion,kernel,iterations=3)
-        output = cv2.bitwise_and(img, img, mask=mask)
-        return output
+
+        #bounding box
+        cnt = cv2.findNonZero(mask)
+        x,y,w,h = cv2.boundingRect(cnt)
+        crop_mask = mask[y:y+h,x:x+w]
+        crop_img = img[y:y+h,x:x+w]
+
+        image = cv2.bitwise_and(crop_img, crop_img, mask=crop_mask)
+        img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        blur = cv2.GaussianBlur(img,(3,3),0)
+        ret,threshhold = cv2.threshold(img,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+        return threshhold
+
+        
 
 low_blue = np.array([101, 30, 14])
 high_blue = np.array([170, 255, 255])

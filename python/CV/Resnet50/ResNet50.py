@@ -22,7 +22,7 @@ class CreateDataset():
           transforms.Resize((30,30)),
           transforms.ToTensor()
           ])
-        batch_size = 8
+        batch_size = 16
         dataset = datasets.ImageFolder(dir_path, transform=transform)
         classmapping = dataset.class_to_idx
         print("dataset has a size of : "+str(len(dataset)))
@@ -237,7 +237,7 @@ if __name__ == '__main__':
         #----------------------------------- creating dataset -------------------------------------------
         train_dataloader, test_dataloader,tsize,valsize,test_y = CreateDataset.LoadDataset(DIR_PATH)
         #-----------------------------------   train model    -------------------------------------------
-        resnet = Resnet50_CreateModel(train_dataloader, test_dataloader,20)
+        resnet = Resnet50_CreateModel(train_dataloader, test_dataloader,8)
         model_trained = resnet.train(tsize,valsize)
         #-----------------------------------    save model    -------------------------------------------
         torch.save(model_trained.state_dict(), 'python/CV/Resnet50/weights.h5') 

@@ -11,8 +11,8 @@ PERSENTAGE = 50
 
 def processing(image):
     img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(img,(3,3),0)
-    ret,threshhold = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    #blur = cv2.GaussianBlur(img,(3,3),0)
+    ret,threshhold = cv2.threshold(img,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
     return threshhold
 
 def extendDataset(new_dir:str, old_dir:str):
@@ -64,6 +64,7 @@ def extendDataset(new_dir:str, old_dir:str):
                         im_out=processing(fliped)
                         cv2.imwrite(os.path.join(new_dir,maps,name),im_out)
             x+=1
+        print(maps+" processed")
 
 if __name__ == "__main__":
     extendDataset("dataset_2","dataset")
