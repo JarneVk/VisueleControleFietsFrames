@@ -12,7 +12,7 @@ class SlidingWindow:
 
     def analyse(image):
         #cut image
-        crops = SlidingWindow.cutImage(image,50,50)
+        crops = SlidingWindow.cutImage(image,30,30)
         heatmap = np.zeros(image.shape, dtype=np.uint8) * 255
         
         for i in range(len(crops)):
@@ -26,10 +26,12 @@ class SlidingWindow:
             if predict == "bad":
                 heatmap = SlidingWindow.addTileToHeatmap(heatmap,crops[i][1],crops[i][2],1)
 
-        #opacity on heatmap
-        output = cv2.addWeighted(heatmap, 0.4, image, 1 - 0.4, 0)
-        cv2.imshow('map',output)
-        cv2.waitKey()
+            #opacity on heatmap
+            output = cv2.addWeighted(heatmap, 0.4, image, 1 - 0.4, 0)
+            cv2.imshow('map',output)
+            cv2.waitKey(1)
+        cv2.imwrite("python/SlidingWindow/heatmap.jpg")
+        
         
 
     #@param image = foto die meegegeven wordt
@@ -87,5 +89,5 @@ class SlidingWindow:
         return map
 
 if __name__ == '__main__':
-    im = cv2.imread("python/Camera/out/picture51.jpg")
+    im = cv2.imread("python/Camera/out/picture61.jpg")
     SlidingWindow.analyse(im)

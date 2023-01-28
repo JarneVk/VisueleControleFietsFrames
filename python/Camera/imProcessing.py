@@ -32,7 +32,10 @@ class imProcessing():
         img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         blur = cv2.GaussianBlur(img,(3,3),0)
         ret,threshhold = cv2.threshold(blur,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-        return threshhold
+        cnt = cv2.findNonZero(threshhold)
+        x,y,w,h = cv2.boundingRect(cnt)
+        output = threshhold[y:y+h,x:x+w]
+        return output
 
     def processChain(img):
         low_blue = np.array([101, 30, 14])
