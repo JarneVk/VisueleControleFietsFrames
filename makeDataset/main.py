@@ -52,7 +52,7 @@ def MakeImageFrame():
     cv2.imshow('image_overvieuw',overvieuw)
     cv2.waitKey(1)
 
-mf = makeFrames.makeFrames('python/Camera/segmentated/picture51.jpg')
+mf = makeFrames.makeFrames('python/Camera/out/picture69.jpg')
 def main():
     MakeImageFrame()
 

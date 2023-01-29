@@ -16,20 +16,25 @@ class SlidingWindow:
         heatmap = np.zeros(image.shape, dtype=np.uint8) * 255
         
         for i in range(len(crops)):
+            currentCrop = np.zeros(image.shape, dtype=np.uint8) * 255
+            currentCrop = SlidingWindow.changeCurrentPos(currentCrop,crops[i][1],crops[i][2])
+            out1 = cv2.addWeighted(heatmap, 0.65, image, 1, 0)
+            output = cv2.addWeighted(currentCrop, 0.65, out1, 1, 0)
+            cv2.imshow('map',output)
+            cv2.waitKey(1)
+            
             #check for fault in neural netwerk
             model = ResNet50.Resnet50_testModel.loadModel('python/CV/Resnet50/weights.h5')
             testnet = ResNet50.Resnet50_testModel(model)
-            cv2.imwrite('python/SlidingWindow/tmp.jpg',crops[i][0])
-            predict = testnet.predictSingleImage('python/SlidingWindow/tmp.jpg')
-            if predict == "good":
-                heatmap = SlidingWindow.addTileToHeatmap(heatmap,crops[i][1],crops[i][2],0)
+            #cv2.imwrite('python/SlidingWindow/tmp.png',crops[i][0])
+            #predict = testnet.predictSingleImage('python/SlidingWindow/tmp.png')
+            predict = testnet.predictSingleImage(crops[i][0])
             if predict == "bad":
-                heatmap = SlidingWindow.addTileToHeatmap(heatmap,crops[i][1],crops[i][2],1)
-
-            #opacity on heatmap
-            output = cv2.addWeighted(heatmap, 0.4, image, 1 - 0.4, 0)
-            cv2.imshow('map',output)
-            cv2.waitKey(1)
+                heatmap = SlidingWindow.addTileToHeatmap(heatmap,crops[i][1],crops[i][2])
+        
+        output = cv2.addWeighted(heatmap, 0.5, image, 1, 0)
+        cv2.imshow('map',output)
+        cv2.waitKey(1)
         cv2.imwrite("python/SlidingWindow/heatmap.jpg",output)
         
         
@@ -77,16 +82,17 @@ class SlidingWindow:
     #@param rbc = right botom corner
     #@param kind = good or wrong (0 or 1)
     #@output = heatmap
-    def addTileToHeatmap(map,ltc,rbc,kind):
-        color = (0,0,0)
-        if kind == 0:
-            color = (0, 255, 0) #in BGR
-        else: 
-            color = (0, 0, 255)
+    def addTileToHeatmap(map,ltc,rbc):
+        color = (0,0,255) #BGR
         print(ltc)
         print(rbc)
         map = cv2.rectangle(map, ltc, rbc, color,cv2.FILLED)
         return map
+    
+    def changeCurrentPos(map,ltc,rbc):
+        map = cv2.rectangle(map, ltc, rbc, (150,50,150),3)
+        return map
+        
 
 if __name__ == '__main__':
     im = cv2.imread("python/Camera/out/picture51.jpg")

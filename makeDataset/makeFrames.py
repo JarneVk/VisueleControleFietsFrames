@@ -11,7 +11,7 @@ class makeFrames():
         print(self.nextfileNumber_good)
         self.count = 0
         self.image = cv2.imread(path)
-        self.crops = self.cutImage(self.image,50,50)
+        self.crops = self.cutImage(self.image,40,40)
 
     def findStartCount(self):
         for i in os.listdir('dataset/bad'):

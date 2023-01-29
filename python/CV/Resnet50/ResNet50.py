@@ -19,14 +19,14 @@ class CreateDataset():
 
     def LoadDataset(dir_path):
         transform = transforms.Compose([
-          transforms.Resize((30,30)),
+          transforms.Resize((40,40)),
           transforms.ToTensor()
           ])
-        batch_size = 16
+        batch_size = 32
         dataset = datasets.ImageFolder(dir_path, transform=transform)
         classmapping = dataset.class_to_idx
         print("dataset has a size of : "+str(len(dataset)))
-        train_aant = int(len(dataset)*0.80)
+        train_aant = int(len(dataset)*0.85)
         test_aant = len(dataset)-train_aant
 
         train_x, test_y = torch.utils.data.random_split(dataset,[train_aant,test_aant])
@@ -146,10 +146,14 @@ class Resnet50_testModel():
         return model
 
     def imageLoader(self,input):
-        imsize = 30
-        loader = transforms.Compose([transforms.Resize(imsize), transforms.ToTensor()])
-        image = Image.open(input)
-        image = loader(image).float()
+        imsize = 40
+        loader = transforms.Compose([ transforms.ToTensor(),transforms.Resize(imsize)])
+        # image = Image.open(input)
+        image = loader(input).float() 
+
+        # transform = transforms.ToTensor()
+        # image = transform(input)
+
         image = Variable(image, requires_grad=True)
         image = image.unsqueeze(0)
         return image.cuda()
@@ -238,7 +242,8 @@ if __name__ == '__main__':
         #----------------------------------- creating dataset -------------------------------------------
         train_dataloader, test_dataloader,tsize,valsize,test_y = CreateDataset.LoadDataset(DIR_PATH)
         #-----------------------------------   train model    -------------------------------------------
-        resnet = Resnet50_CreateModel(train_dataloader, test_dataloader,8)
+        epochs = int(input('amount of epochs :'))
+        resnet = Resnet50_CreateModel(train_dataloader, test_dataloader,epochs)
         model_trained = resnet.train(tsize,valsize)
         #-----------------------------------    save model    -------------------------------------------
         torch.save(model_trained.state_dict(), 'python/CV/Resnet50/weights.h5') 
