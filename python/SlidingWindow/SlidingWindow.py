@@ -18,8 +18,8 @@ class SlidingWindow:
         for i in range(len(crops)):
             currentCrop = np.zeros(image.shape, dtype=np.uint8) * 255
             currentCrop = SlidingWindow.changeCurrentPos(currentCrop,crops[i][1],crops[i][2])
-            out1 = cv2.addWeighted(heatmap, 0.65, image, 1, 0)
-            output = cv2.addWeighted(currentCrop, 0.65, out1, 1, 0)
+            out1 = cv2.addWeighted(heatmap, 0.90, image, 1, 0)
+            output = cv2.addWeighted(currentCrop, 0.90, out1, 1, 0)
             cv2.imshow('map',output)
             cv2.waitKey(1)
             
@@ -95,5 +95,5 @@ class SlidingWindow:
         
 
 if __name__ == '__main__':
-    im = cv2.imread("python/Camera/out/picture51.jpg")
+    im = cv2.imread("python/Camera/out/picture61.jpg")
     SlidingWindow.analyse(im)
