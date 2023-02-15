@@ -20,3 +20,5 @@ dataset_2
 python/CV/Resnet50/__pycache__
 python/Camera/segmentated
 makeDataset/__pycache__
+python/CV/autoEncoders/__pycache__
+dataset_autoenc

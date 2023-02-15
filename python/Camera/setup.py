@@ -3,6 +3,8 @@ from pyueye import ueye
 import numpy as np
 import cv2
 import sys
+import threading
+import os
 
 class Camera ():
 
@@ -187,10 +189,29 @@ class Camera ():
         else:
             print('fout in detectie van camera')
         return NULL
+    
+    def previeuw(self):
+        if self.nRet == ueye.IS_SUCCESS :
+            try:
+                array = ueye.get_data(self.pcImageMemory, self.width, self.height, self.nBitsPerPixel, self.pitch, copy=False)
+                frame = np.reshape(array,(self.height.value, self.width.value, self.bytes_per_pixel))
+                frame = cv2.resize(frame,(0,0),fx=0.5, fy=0.5)
+                cv2.imshow("camera",frame)
+                cv2.waitKey(1)
+            except:
+                print('fout bij uitlewen van foto')
+
+        else:
+            print('fout in detectie van camera')
 
 c = Camera()
 #c.testCamera()
-count = 75
+thp = threading.Thread(target=c.previeuw)
+thp.start()
+x=1
+for i in os.listdir('python/Camera/tmp_pict'):
+    x+=1
+count = x
 while True:
     input('take picture')
     frame = c.takePicture()

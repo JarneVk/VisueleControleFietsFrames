@@ -131,7 +131,7 @@ class Resnet50_testModel():
         self.model = model
         self.mapping = joblib.load('python/CV/Resnet50/classmapping')
         self.transform = transforms.Compose([
-          transforms.Resize((30,30)),
+          transforms.Resize((40,40)),
           transforms.ToTensor()
           ])
 

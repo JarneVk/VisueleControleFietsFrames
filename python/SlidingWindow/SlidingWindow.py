@@ -95,5 +95,5 @@ class SlidingWindow:
         
 
 if __name__ == '__main__':
-    im = cv2.imread("python/Camera/out/picture61.jpg")
+    im = cv2.imread("python/Camera/out/picture51.jpg")
     SlidingWindow.analyse(im)
