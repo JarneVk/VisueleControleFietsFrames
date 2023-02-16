@@ -191,18 +191,19 @@ class Camera ():
         return NULL
     
     def previeuw(self):
-        if self.nRet == ueye.IS_SUCCESS :
-            try:
-                array = ueye.get_data(self.pcImageMemory, self.width, self.height, self.nBitsPerPixel, self.pitch, copy=False)
-                frame = np.reshape(array,(self.height.value, self.width.value, self.bytes_per_pixel))
-                frame = cv2.resize(frame,(0,0),fx=0.5, fy=0.5)
-                cv2.imshow("camera",frame)
-                cv2.waitKey(1)
-            except:
-                print('fout bij uitlewen van foto')
+        while True:
+            if self.nRet == ueye.IS_SUCCESS :
+                try:
+                    array = ueye.get_data(self.pcImageMemory, self.width, self.height, self.nBitsPerPixel, self.pitch, copy=False)
+                    frame = np.reshape(array,(self.height.value, self.width.value, self.bytes_per_pixel))
+                    frame = cv2.resize(frame,(0,0),fx=0.5, fy=0.5)
+                    cv2.imshow("camera",frame)
+                    cv2.waitKey(1)
+                except:
+                    print('fout bij uitlewen van foto')
 
-        else:
-            print('fout in detectie van camera')
+            else:
+                print('fout in detectie van camera')
 
 c = Camera()
 #c.testCamera()
@@ -217,5 +218,5 @@ while True:
     frame = c.takePicture()
     cv2.imshow('image',frame)
     cv2.waitKey(0)
-    cv2.imwrite('python/Camera/tmp_pict/picture'+str(count)+'.jpg',frame)
+    cv2.imwrite('python/Camera/tmp_pict/'+str(count)+'.jpg',frame)
     count += 1
