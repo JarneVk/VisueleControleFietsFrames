@@ -1,0 +1,1 @@
+Faster rcnn based on : https://debuggercafe.com/custom-object-detection-using-pytorch-faster-rcnn/
