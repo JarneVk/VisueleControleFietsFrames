@@ -6,6 +6,8 @@ import sys
 import threading
 import os
 
+import time
+
 class Camera ():
 
     def __init__(self):
@@ -133,12 +135,13 @@ class Camera ():
         if nRet != ueye.IS_SUCCESS:
             print("is_InquireImageMem ERROR")
         else:
-            print("Press q to leave the programm")
+            print("camera is setup")
 
         return nRet
 
     def testCamera(self):
         # Continuous image display
+        global stopThread
         while(self.nRet == ueye.IS_SUCCESS):
 
             # In order to display the image in an OpenCV window we need to...
@@ -163,6 +166,9 @@ class Camera ():
             
             # Press q if you want to end the loop
             if cv2.waitKey(1) & 0xFF == ord('q'):
+                break
+
+            if stopThread:
                 break
         #---------------------------------------------------------------------------------------------------------------------------------------
         
@@ -189,34 +195,52 @@ class Camera ():
         else:
             print('fout in detectie van camera')
         return NULL
-    
-    def previeuw(self):
-        while True:
-            if self.nRet == ueye.IS_SUCCESS :
-                try:
-                    array = ueye.get_data(self.pcImageMemory, self.width, self.height, self.nBitsPerPixel, self.pitch, copy=False)
-                    frame = np.reshape(array,(self.height.value, self.width.value, self.bytes_per_pixel))
-                    frame = cv2.resize(frame,(0,0),fx=0.5, fy=0.5)
-                    cv2.imshow("camera",frame)
-                    cv2.waitKey(1)
-                except:
-                    print('fout bij uitlewen van foto')
 
-            else:
-                print('fout in detectie van camera')
+    def takeVideo(self,startIndex):
+        print('start video cap')
+        frame = self.takePicture()
+        h,w,_ = frame.shape
+        size = (w,h)
+        pathOut = 'python/Camera/tmp_pict/video_'+str(startIndex)+'.mp4'
+        fps = 30
+        out = cv2.VideoWriter(pathOut,cv2.VideoWriter_fourcc(*'MP4V'), fps, size)
+        stop = 0
+        while stop<300:
+            frame = self.takePicture()
+            out.write(frame)
+            # cv2.imwrite('python/Camera/vid/'+str(stop)+'.jpg',frame)
+            stop += 1
+            time.sleep(1/30)
+            if stop%30==0:
+                print(str(stop/30)+' sec bezig')
+            cv2.imshow('prev',frame)
+            cv2.waitKey(1)
+        out.release()
+        cv2.destroyAllWindows()
+
+stopThread = False
 
 c = Camera()
-#c.testCamera()
-thp = threading.Thread(target=c.previeuw)
-thp.start()
-x=1
+
+x=3
 for i in os.listdir('python/Camera/tmp_pict'):
     x+=1
 count = x
+
+c.takeVideo(x)
+
+#c.testCamera()
+thp = threading.Thread(target=c.testCamera)
+thp.start()
+
 while True:
-    input('take picture')
+    invar = input('take picture')
+    if invar == 'stop':
+        stopThread = True
+        break
     frame = c.takePicture()
-    cv2.imshow('image',frame)
-    cv2.waitKey(0)
+    # cv2.imshow('image',frame)
+    # cv2.waitKey(1)
+    print('saved picture :{}'.format(count))
     cv2.imwrite('python/Camera/tmp_pict/'+str(count)+'.jpg',frame)
     count += 1

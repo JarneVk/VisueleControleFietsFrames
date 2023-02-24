@@ -22,3 +22,14 @@ python/Camera/segmentated
 makeDataset/__pycache__
 python/CV/autoEncoders/__pycache__
 dataset_autoenc
+python/CV/Faster_rcnn/src/__pycache__
+python/CV/Faster_rcnn/outputs
+python/CV/Faster_rcnn/Microcontroller Detection
+python/CV/Faster_rcnn/test_data
+python/CV/Faster_rcnn/test_predictions
+dataset_30x30
+python/CV/Resnet50/weights_binair.h5
+python/Camera/for_proces
+python/Camera/out
+ValidataionSet
+python/Camera/vid

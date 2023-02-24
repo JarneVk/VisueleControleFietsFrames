@@ -7,15 +7,15 @@ NUM_EPOCHS = 5 # number of epochs to train for
 DEVICE = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
 # training images and XML files directory
-TRAIN_DIR = '../Microcontroller Detection/train'
+TRAIN_DIR = '../fietsframe/train'
 # validation images and XML files directory
-VALID_DIR = '../Microcontroller Detection/test'
+VALID_DIR = '../fietsframe/test'
 
 # classes: 0 index is reserved for background
 CLASSES = [
-    'background', 'Arduino_Nano', 'ESP8266', 'Raspberry_Pi_3', 'Heltec_ESP32_Lora'
+    'background','bad'
 ]
-NUM_CLASSES = 5
+NUM_CLASSES = 2
 
 # whether to visualize images after crearing the data loaders
 VISUALIZE_TRANSFORMED_IMAGES = False

@@ -38,7 +38,7 @@ class imProcessing():
         ret,threshhold = cv2.threshold(blur,140,255,cv2.THRESH_BINARY)
         cnt = cv2.findNonZero(threshhold)
         x,y,w,h = cv2.boundingRect(cnt)
-        output = threshhold[y:y+h,x:x+w]
+        output = image[y:y+h,x:x+w]
         return output
 
     def processChain(img):
@@ -58,9 +58,5 @@ if __name__ == '__main__':
         im = cv2.imread(os.path.join("python/Camera/for_proces",filename))
         output = imProcessing.processChain(im)
         cv2.imwrite(os.path.join("python/Camera/out",filename),output)
-
-        out2 = imProcessing.removeColor(low_blue,high_blue,im)
-        output = imProcessing.threshhold(im,out2)
-        cv2.imwrite(os.path.join("python/Camera/segmentated",filename),output)
 
         

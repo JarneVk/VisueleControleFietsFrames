@@ -1,3 +1,4 @@
+import albumentations as A
 import cv2
 import os, shutil
 import random
@@ -7,19 +8,26 @@ ORIGINAL = 1
 ORIENTATIE = 1
 MIRROR = 1
 
-PERSENTAGE = 50
+PERSENTAGE = 100
+
+transform = A.Compose([
+    A.RandomBrightnessContrast(p=0.2),
+])
 
 def processing(image):
-    img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    #blur = cv2.GaussianBlur(img,(3,3),0)
-    ret,threshhold = cv2.threshold(img,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
-    return threshhold
+    # img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    # img_resize = cv2.resize(img,(128,128),interpolation=cv2.INTER_LINEAR)
+    # ret,threshhold = cv2.threshold(img_resize,0,255,cv2.THRESH_BINARY+cv2.THRESH_OTSU)
+    transformed = transform(image=image)
+    
+    return transformed["image"]
 
 def extendDataset(new_dir:str, old_dir:str):
     shutil.rmtree(new_dir)
     os.makedirs(new_dir)
     os.makedirs(os.path.join(new_dir,"good"))
     os.makedirs(os.path.join(new_dir,"bad"))
+    os.makedirs(os.path.join(new_dir,"small_defect"))
     
     for maps in os.listdir(old_dir):
         count = 0

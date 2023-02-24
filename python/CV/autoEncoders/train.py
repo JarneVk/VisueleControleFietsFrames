@@ -88,11 +88,6 @@ def validate(model,dir_good,dir_fouten=0):
                 loss = lossFn(deco, image)
                 losses_bad.append(loss.item())
                 totloss += loss
-                if loss < 0.05:
-                    print(loss)
-                    print(img_org)
-                    plt.imshow(  img_org.permute(1, 2, 0)  )
-                    plt.show()
             it+=1
         print('[testing] average loss faults : {loss:.6f}'.format(loss=totloss/it))
     

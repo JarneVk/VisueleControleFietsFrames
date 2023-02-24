@@ -5,6 +5,7 @@ import sys
 sys.path.insert(1,"python/CV/Resnet50")
 import ResNet50
 
+IMGSIZE = 80
 
 class SlidingWindow:
     def __init__(self) -> None:
@@ -12,7 +13,7 @@ class SlidingWindow:
 
     def analyse(image):
         #cut image
-        crops = SlidingWindow.cutImage(image,40,40)
+        crops = SlidingWindow.cutImage(image,IMGSIZE,IMGSIZE)
         heatmap = np.zeros(image.shape, dtype=np.uint8) * 255
         
         for i in range(len(crops)):
@@ -28,9 +29,15 @@ class SlidingWindow:
             testnet = ResNet50.Resnet50_testModel(model)
             #cv2.imwrite('python/SlidingWindow/tmp.png',crops[i][0])
             #predict = testnet.predictSingleImage('python/SlidingWindow/tmp.png')
+
+            cv2.imshow('img',crops[i][0])
+            cv2.waitKey(1)
+
             predict = testnet.predictSingleImage(crops[i][0])
             if predict == "bad":
                 heatmap = SlidingWindow.addTileToHeatmap(heatmap,crops[i][1],crops[i][2])
+            if predict == "small_defect":
+                heatmap = SlidingWindow.addS_TileToHeatmap(heatmap,crops[i][1],crops[i][2])
         
         output = cv2.addWeighted(heatmap, 0.5, image, 1, 0)
         cv2.imshow('map',output)
@@ -89,11 +96,19 @@ class SlidingWindow:
         map = cv2.rectangle(map, ltc, rbc, color,cv2.FILLED)
         return map
     
+    def addS_TileToHeatmap(map,ltc,rbc):
+        color = (0,153,255) #BGR
+        print(ltc)
+        print(rbc)
+        map = cv2.rectangle(map, ltc, rbc, color,cv2.FILLED)
+        return map
+    
     def changeCurrentPos(map,ltc,rbc):
         map = cv2.rectangle(map, ltc, rbc, (150,50,150),3)
         return map
         
 
 if __name__ == '__main__':
-    im = cv2.imread("python/Camera/out/picture51.jpg")
+    pict = input('pictureNumber: ')
+    im = cv2.imread("python/Camera/out/"+pict+".jpg")
     SlidingWindow.analyse(im)

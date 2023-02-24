@@ -35,7 +35,7 @@ def trainAAE(data_loader):
 
     data_iter = iter(data_loader)
     iter_per_epoch = len(data_loader)
-    total_step = 50000
+    total_step = 2000
 
     # Start training
     for step in range(total_step):
@@ -88,6 +88,26 @@ def trainAAE(data_loader):
 
         if (step+1) % 100 == 0: #every 100 steps
             print("recon_loss : {}    | descriminator_loss : {}     | generator_loss : {}".format(recon_loss.data.item(),D_loss.data.item(),G_loss.data.item()))
+
+    torch.save(Q.state_dict(),'Q_encoder_weights.pt')
+
+def eval_AAE(dataset_test_good):
+    data_loader_test = torch.utils.data.DataLoader(dataset=dataset_test_good, 
+                                          batch_size=10000, 
+                                               shuffle=True)
+    data_iter_test = iter(data_loader_test)    
+    # Fetch the images and labels and convert them to variables
+    images, labels = next(data_iter_test)
+    images, labels = to_var(images.view(images.size(0), -1)), to_var(labels)
+
+    outputs = net(Q(images))
+    # outputs = net(images)
+
+    # Compute accuracy
+    _, argmax = torch.max(outputs, 1)
+    accuracy = (labels == argmax.squeeze()).float().mean()
+
+    print(accuracy.data[0])
 
 if __name__ == '__main__':
     dir_path = 'dataset_autoenc/good_dir'

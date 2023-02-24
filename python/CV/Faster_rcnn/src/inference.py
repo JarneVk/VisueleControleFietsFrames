@@ -8,7 +8,7 @@ from model import create_model
 # set the computation device
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 # load the model and the trained weights
-model = create_model(num_classes=5).to(device)
+model = create_model(num_classes=2).to(device)
 model.load_state_dict(torch.load(
     '../outputs/model5.pth', map_location=device
 ))
@@ -21,17 +21,16 @@ print(f"Test instances: {len(test_images)}")
 
 # classes: 0 index is reserved for background
 CLASSES = [
-    'background', 'Arduino_Nano', 'ESP8266', 'Raspberry_Pi_3', 'Heltec_ESP32_Lora'
+    'background','bad'
 ]
 
 # define the detection threshold...
 # ... any detection having score below this will be discarded
-detection_threshold = 0.8
+detection_threshold = 0.7
 
 for i in range(len(test_images)):
     # get the image file name for saving output later on
     image_name = test_images[i].split('/')[-1].split('.')[0]
-    #print(image_name+"========"+test_images[i])
     image = cv2.imread(test_images[i])
     orig_image = image.copy()
     # BGR to RGB
@@ -72,7 +71,7 @@ for i in range(len(test_images)):
 
         cv2.imshow('Prediction', orig_image)
         cv2.waitKey(1)
-        cv2.imwrite(f"../test_predictions/{image_name}.jpg", orig_image,)
+        cv2.imwrite(f"../test_predictions/{str(i)}.jpg", orig_image,)
     print(f"Image {i+1} done...")
     print('-'*50)
 
