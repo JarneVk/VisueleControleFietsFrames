@@ -19,7 +19,7 @@ import visualise
 PICTUREHEIGHT = 128
 PICTUREWIDTH = 128
 
-CLASSES = 3
+CLASSES = 2
 LEARNING_RATE = 0.0005
 
 VALDATA = 'ValidataionSet'

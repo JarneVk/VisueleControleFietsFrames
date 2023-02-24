@@ -7,8 +7,11 @@ from torch import nn, optim
 from torch.utils.data import DataLoader
 from torchvision import datasets, transforms, models
 
+import visualise
 
 
+VALDATA = 'ValidataionSet'
+LEARNING_RATE = 0.01
 
 class CreateDataset():
     def __init__(self) -> None:
@@ -19,11 +22,11 @@ class CreateDataset():
           transforms.Resize((256,256)),
           transforms.ToTensor()
           ])
-        batch_size = 64
+        batch_size = 32
         dataset = datasets.ImageFolder(dir_path, transform=transform)
         classmapping = dataset.class_to_idx
         print("dataset has a size of : "+str(len(dataset)))
-        train_aant = int(len(dataset)*0.85)
+        train_aant = int(len(dataset)*0.80)
         test_aant = len(dataset)-train_aant
 
         train_x, test_y = torch.utils.data.random_split(dataset,[train_aant,test_aant])
@@ -32,7 +35,11 @@ class CreateDataset():
         test_dataloader = DataLoader(test_y, batch_size=batch_size, shuffle=True)
         print(f"data has been splitted ---- train :{len(train_x)} , test :{len(test_y)}")
         joblib.dump(classmapping,'python/CV/NetwerkPaper/classmapping')
-        return train_dataloader, test_dataloader,len(train_x),len(test_y),test_y
+
+        valdataset = datasets.ImageFolder(VALDATA, transform=transform)
+        val_dataloader = DataLoader(valdataset, batch_size=batch_size)
+
+        return train_dataloader, test_dataloader,len(train_x),len(test_y),test_y,val_dataloader,len(valdataset)
     
 
 
@@ -127,16 +134,30 @@ class CNN_train():
     def __init__(self) -> None:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    def train(self,epochs,dataset_train,datase_test,t_size,valsize):
+    def train(self,epochs,dataset_train,datase_test,t_size,valsize,val_dataloader,size_val):
+
+        tr_loss = []
+        te_loss = []
+        val_loss = []
+
         print("[INFO] initializing the model...")
         # model = LeNet(
 	    #         numChannels=3,
 	    #         classes=2).to(self.device)
-        model = PaperNet(
-	            numChannels=3,
-	            classes=2).to(self.device)
+        # model = PaperNet(
+	    #         numChannels=3,
+	    #         classes=2).to(self.device)
+        
+        model = models.resnet50(weights='DEFAULT').to(self.device)                                           # for pretrained weights='DEFAULT'
+        for param in model.parameters():
+            param.requires_grad = False
 
-        opt = optim.Adam(model.parameters(), lr=0.01)
+        model.fc = nn.Sequential(
+               nn.Linear(2048, 128),
+               nn.ReLU(inplace=True),
+               nn.Linear(128, 2)).to(self.device)
+
+        opt = optim.Adam(model.parameters(), lr=LEARNING_RATE)
         lossFn = nn.NLLLoss()
         
         for e in range(0, epochs):
@@ -162,51 +183,101 @@ class CNN_train():
 
                 totalTrainLoss += loss
                 trainCorrect += (pred.argmax(1) == y).type(torch.float).sum().item()
-                i+=1
             print("Training : Loss: {}".format(totalTrainLoss/t_size))
             print("           Accu: {}".format(trainCorrect/t_size))
-            print("aantal picts in train {}".format(i))
+            tr_loss.append(totalTrainLoss/t_size)
             
-        print('-' * 20)
-        # switch off autograd for evaluation
-        mapping = joblib.load('python/CV/NetwerkPaper/classmapping')
-        rp=0
-        fp=0
-        fn=0
-        rn = 0
-        with torch.no_grad():
-            model.eval()
-            for (x, y) in datase_test:
-                # send the input to the device
-                labels = y
-                (x, y) = (x.to(self.device), y.to(self.device))
+            print('-' * 20)
+            # switch off autograd for evaluation
+            mapping = joblib.load('python/CV/NetwerkPaper/classmapping')
+            rp=0
+            fp=0
+            fn=0
+            rn = 0
+            with torch.no_grad():
+                model.eval()
+                for (x, y) in datase_test:
+                    # send the input to the device
+                    labels = y
+                    (x, y) = (x.to(self.device), y.to(self.device))
 
-                pred = model(x)
+                    pred = model(x)
 
-                for i in range(0,len(y)):
-                    expected = list(mapping)[labels[i]]
-                    pred_idx = pred[i].argmax(0)
-                    prediction = list(mapping)[pred_idx.item()]
-                    if prediction == "good":
-                        if expected == "good":
-                            rp+=1
-                        else:
-                            fp+=1
-                    elif prediction == "bad":
-                        if expected == "bad":
-                            rn+=1
-                        else:
-                            fn+=1
-                totalValLoss += lossFn(pred, y)
-                valCorrect += (pred.argmax(1) == y).type(torch.float).sum().item()
+                    for i in range(0,len(y)):
+                        expected = list(mapping)[labels[i]]
+                        pred_idx = pred[i].argmax(0)
+                        prediction = list(mapping)[pred_idx.item()]
+                        if prediction == "good":
+                            if expected == "good":
+                                rp+=1
+                            else:
+                                fp+=1
+                        elif prediction == "bad":
+                            if expected == "bad":
+                                rn+=1
+                            else:
+                                fn+=1
 
-        print("Testing: Loss: {}".format(totalValLoss/valsize))
-        print("         Accu: {}".format(valCorrect/valsize))
-        data = [[rp,fp],[fn,rn]]
-        headers=["good", "bad"]
-        print("_____|expected   size:{}".format(valsize))
-        print("pred |")
-        print(pandas.DataFrame(data, headers, headers))
+                    totalValLoss += lossFn(pred, y)
+                    valCorrect += (pred.argmax(1) == y).type(torch.float).sum().item()
+
+            print("Testing: Loss: {}".format(totalValLoss/valsize))
+            print("         Accu: {}".format(valCorrect/valsize))
+            te_loss.append(totalValLoss/valsize)
+            data = [[rp,fp],[fn,rn]]
+            headers=["good", "bad"]
+            print("_____|expected   size:{}".format(size_val))
+            print("pred |")
+            print(pandas.DataFrame(data, headers, headers))
+
+            rp=0
+            fp=0
+            fn=0
+            rn = 0
+
+            ValiLoss = 0
+            Valicor = 0
+            with torch.no_grad():
+                model.eval()
+                for (x, y) in val_dataloader:
+                    # send the input to the device
+                    labels = y
+                    (x, y) = (x.to(self.device), y.to(self.device))
+
+                    pred = model(x)
+
+                    for i in range(0,len(y)):
+                        expected = list(mapping)[labels[i]]
+                        pred_idx = pred[i].argmax(0)
+                        prediction = list(mapping)[pred_idx.item()]
+                        if prediction == "good":
+                            if expected == "good":
+                                rp+=1
+                            else:
+                                fp+=1
+                        elif prediction == "bad":
+                            if expected == "bad":
+                                rn+=1
+                            else:
+                                fn+=1
+                    ValiLoss += lossFn(pred, y)
+                    Valicor += (pred.argmax(1) == y).type(torch.float).sum().item()
+
+            print("Validation:  Loss: {}".format(ValiLoss/size_val))
+            print("             Accu: {}".format(Valicor/size_val))
+            val_loss.append(ValiLoss/size_val)
+            data = [[rp,fp],[fn,rn]]
+            headers=["good", "bad"]
+            print("_____|expected   size:{}".format(size_val))
+            print("pred |")
+            print(pandas.DataFrame(data, headers, headers))
+
+        loss_list = [tr_loss,te_loss,val_loss]
+        title = "loss:  epochs "+str(epochs)+" | lr "+str(LEARNING_RATE)
+        for _ in os.listdir('python/CV/Resnet50/trainingLog'):
+            x+=1
+        saveLogPict = 'python/CV/NetwerkPaper/trainingLog/log'+str(x)+'.png'
+        visualise.Visualise(loss_list,title=title,Save_path=saveLogPict)
 
         
 
@@ -214,11 +285,11 @@ class CNN_train():
 
 
 if __name__ == '__main__':
-    DIR_PATH = "dataset_online"
+    DIR_PATH = "dataset_2"
     input_str = input("test or train? :")
     if input_str == "train":
         #----------------------------------- creating dataset -------------------------------------------
-        train_dataloader, test_dataloader,tsize,valsize,test_y = CreateDataset.LoadDataset(DIR_PATH)
+        train_dataloader, test_dataloader,tsize,valsize,test_y,val_dataloader,size_val = CreateDataset.LoadDataset(DIR_PATH)
         #-----------------------------------   train model    -------------------------------------------
         epochs = int(input('amount of epochs :'))
-        CNN_train().train(epochs,train_dataloader,test_dataloader,tsize,valsize)
+        CNN_train().train(epochs,train_dataloader,test_dataloader,tsize,valsize,val_dataloader,size_val)
