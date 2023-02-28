@@ -144,18 +144,18 @@ class CNN_train():
         # model = LeNet(
 	    #         numChannels=3,
 	    #         classes=2).to(self.device)
-        # model = PaperNet(
-	    #         numChannels=3,
-	    #         classes=2).to(self.device)
+        model = PaperNet(
+	            numChannels=3,
+	            classes=2).to(self.device)
         
-        model = models.resnet50(weights='DEFAULT').to(self.device)                                           # for pretrained weights='DEFAULT'
-        for param in model.parameters():
-            param.requires_grad = False
+        # model = models.resnet50(weights='DEFAULT').to(self.device)                                           # for pretrained weights='DEFAULT'
+        # for param in model.parameters():
+        #     param.requires_grad = False
 
-        model.fc = nn.Sequential(
-               nn.Linear(2048, 128),
-               nn.ReLU(inplace=True),
-               nn.Linear(128, 2)).to(self.device)
+        # model.fc = nn.Sequential(
+        #        nn.Linear(2048, 128),
+        #        nn.ReLU(inplace=True),
+        #        nn.Linear(128, 2)).to(self.device)
 
         opt = optim.Adam(model.parameters(), lr=LEARNING_RATE)
         lossFn = nn.NLLLoss()
