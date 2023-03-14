@@ -13,16 +13,64 @@ from PIL import Image
 import joblib
 import pandas
 import os
+import io
+import copy
+import matplotlib.pyplot as plt
 
-import visualise
 
 PICTUREHEIGHT = 128
 PICTUREWIDTH = 128
 
 CLASSES = 2
 LEARNING_RATE = 0.0005
+MODEL = 'resnet34'
+
+EARLYSTOP = True
 
 VALDATA = 'ValidataionSet'
+
+class visualise():
+    def Visualise(list,title="loss",Save_path='python/CV/Resnet50/trainingLog/default.png'):
+        ax = plt.gca()
+        ax.set_ylim([0, 1])
+        for l in list:
+            plt.plot(l)
+            plt.xlabel('itterations')
+            plt.ylabel('loss')
+            plt.title(title)
+        plt.savefig(Save_path)
+        plt.show()
+
+class EarlyStopping():
+  def __init__(self, patience=10, min_delta=0, restore_best_weights=True):
+    self.patience = patience
+    self.min_delta = min_delta
+    self.restore_best_weights = restore_best_weights
+    self.best_model = None
+    self.best_loss = None
+    self.counter = 0
+    self.status = ""
+    
+  def __call__(self, model, val_loss):
+    if self.best_loss == None:
+      self.best_loss = val_loss
+      self.best_model = copy.deepcopy(model)
+    elif self.best_loss - val_loss > self.min_delta:
+      self.best_loss = val_loss
+      self.counter = 0
+      self.best_model.load_state_dict(model.state_dict())
+    elif self.best_loss - val_loss < self.min_delta:
+      self.counter += 1
+      if self.counter >= self.patience:
+        self.status = f"Stopped on {self.counter}"
+        if self.restore_best_weights:
+          model.load_state_dict(self.best_model.state_dict())
+        return True
+    self.status = f"{self.counter}/{self.patience}"
+    return False
+  
+  def getBestModel(self):
+      return self.best_model
 
 class CreateDataset():
     def __init__(self) -> None:
@@ -33,7 +81,7 @@ class CreateDataset():
           transforms.Resize((PICTUREWIDTH,PICTUREHEIGHT)),
           transforms.ToTensor()
           ])
-        batch_size = 32
+        batch_size = 16
         dataset = datasets.ImageFolder(dir_path, transform=transform)
         classmapping = dataset.class_to_idx
         print("dataset has a size of : "+str(len(dataset)))
@@ -60,24 +108,42 @@ class Resnet50_CreateModel():
         self.valdata = val_dataset
         self.num_epochs = num_epochs
         self.classmap = joblib.load('python/CV/Resnet50/classmapping')
+        self.learningRate = LEARNING_RATE
         x=0
         for _ in os.listdir('python/CV/Resnet50/trainingLog'):
             x+=1
         self.loging = open('python/CV/Resnet50/trainingLog/log'+str(x)+'.txt','w')
         self.saveLogPict = 'python/CV/Resnet50/trainingLog/log'+str(x)+'.png'
 
-    def train(self,tsize,valsize,size_val):
-        model = models.resnet50(weights='DEFAULT').to(self.device)                                           # for pretrained weights='DEFAULT'
-        for param in model.parameters():
-            param.requires_grad = False
+    def setLearningRate(self,newlr):
+        self.learningRate = newlr
 
-        model.fc = nn.Sequential(
+    def train(self,tsize,valsize,size_val):
+        if MODEL == 'resnet34':
+            model = models.resnet34(weights='DEFAULT').to(self.device)
+            for param in model.parameters():
+                param.requires_grad = False
+            model.fc = nn.Linear(512, CLASSES).to(self.device)
+
+        elif MODEL == 'resnet101':
+            model = models.resnet101(weights='DEFAULT').to(self.device)
+            for param in model.parameters():
+                param.requires_grad = False
+            num_features = model.fc.in_features
+            model.fc = nn.Linear(num_features, CLASSES).to(self.device)
+
+        else:
+            model = models.resnet50(weights='DEFAULT').to(self.device)
+            for param in model.parameters():
+                param.requires_grad = False
+            model.fc = nn.Sequential(
                nn.Linear(2048, 128),
                nn.ReLU(inplace=True),
                nn.Linear(128, CLASSES)).to(self.device)
+        
 
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(model.fc.parameters(),lr=LEARNING_RATE)
+        optimizer = optim.Adam(model.fc.parameters(),lr=self.learningRate)
         model_trained = self.train_model(model, criterion, optimizer,tsize,valsize,size_val, self.num_epochs)
         return model_trained
 
@@ -87,13 +153,15 @@ class Resnet50_CreateModel():
         test_loss_list = []
         v_loss_list = []
 
+        earlstop = EarlyStopping()
+
         print(f"train :{tsize} , test :{valsize}")
         t_start = time.time()
         for epoch in range(num_epochs):
             print('Epoch {}/{}'.format(epoch+1, num_epochs))
             print('-' * 10)
             start_epoch = time.time()
-            for phase in ['train', 'test','validation']:
+            for phase in ['train','validation', 'test']:
                 if phase == 'train':
                     model.train()
                 else:
@@ -141,6 +209,14 @@ class Resnet50_CreateModel():
                     epoch_acc = running_corrects.double() / valsize 
                     test_loss_list.append(epoch_loss)
                     self.loging.write('test_loss:'+str(epoch_loss)+'\n')
+                    print('ealyStrop: [{}]'.format(earlstop.status))
+                    if earlstop(model,epoch_loss) and EARLYSTOP:
+                        t_tijd = time.time() - t_start
+                        print(f"total time : {t_tijd}")
+                        lijst = [t_loss_list,test_loss_list,v_loss_list]
+                        title = str(MODEL)+" |  loss: epochs "+str(num_epochs)+" | lr "+str(LEARNING_RATE)+" | earlyStop "+str(EARLYSTOP)
+                        visualise.Visualise(lijst,title,self.saveLogPict)
+                        return earlstop.getBestModel()
                 else :
                     for idx, (inputs, labels) in enumerate(self.valdata):
                         inputs = inputs.to(self.device)
@@ -162,15 +238,13 @@ class Resnet50_CreateModel():
                 print('{} loss: {:.4f}, acc: {:.4f}'.format(phase,
                                                             epoch_loss,
                                                             epoch_acc))
-                tijd = time.time() - start_epoch
-                print(f"time :{tijd}")
 
         t_tijd = time.time() - t_start
         print(f"total time : {t_tijd}")
         lijst = [t_loss_list,test_loss_list,v_loss_list]
-        title = "loss: epochs "+str(num_epochs)+" | lr "+str(LEARNING_RATE)
+        title = str(MODEL)+" |  loss: epochs "+str(num_epochs)+" | lr "+str(LEARNING_RATE)+" | earlyStop "+str(EARLYSTOP)
         visualise.Visualise(lijst,title,self.saveLogPict)
-        return model
+        return earlstop.getBestModel()
 
 
 class Resnet50_testModel():
@@ -185,8 +259,24 @@ class Resnet50_testModel():
 
     def loadModel(path):
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        model = models.resnet50(weights=None).to(device)
-        model.fc = nn.Sequential(
+        if MODEL == 'resnet34':
+            model = models.resnet34(weights=path).to(device)
+            for param in model.parameters():
+                param.requires_grad = False
+            model.fc = nn.Linear(512, CLASSES).to(device)
+
+        elif MODEL == 'resnet101':
+            model = models.resnet101(weights=path).to(device)
+            for param in model.parameters():
+                param.requires_grad = False
+            num_features = model.fc.in_features
+            model.fc = nn.Linear(num_features, CLASSES).to(device)
+
+        else:
+            model = models.resnet50(weights=path).to(device)
+            for param in model.parameters():
+                param.requires_grad = False
+            model.fc = nn.Sequential(
                nn.Linear(2048, 128),
                nn.ReLU(inplace=True),
                nn.Linear(128, CLASSES)).to(device)

@@ -48,7 +48,7 @@ def extendDataset(new_dir:str, old_dir:str):
             if ORIGINAL == 1:
                 image = cv2.imread(os.path.join(old_dir,maps,file))
                 im_out=processing(image)
-                cv2.imwrite(os.path.join(new_dir,maps,file),im_out)
+                cv2.imwrite(os.path.join(new_dir,maps,"_copy_"+file),im_out)
             if lijst[x] ==1 and maps=="bad":
                 #roteer willekeurig aantal * 90gr
                 if x%2 != 0:

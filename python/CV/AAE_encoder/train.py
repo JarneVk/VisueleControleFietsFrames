@@ -113,10 +113,12 @@ if __name__ == '__main__':
     dir_path = 'dataset_autoenc/good_dir'
     transform = transforms.Compose([
         transforms.Grayscale(num_output_channels=1), #convert to grayscale image
-        transforms.Resize((40,40)),
+        transforms.Resize((80,80)),
         transforms.ToTensor()
         ])
     dataset = datasets.ImageFolder(dir_path, transform=transform)
-    data_loader = torch.utils.data.DataLoader(dataset=dataset,batch_size=100,shuffle=True)
+    data_loader = torch.utils.data.DataLoader(dataset=dataset,batch_size=16,shuffle=True)
 
     trainAAE(data_loader)
+
+    

@@ -14,8 +14,10 @@ import joblib
 import pandas
 import os
 
-import visualise
 import model as Models
+
+import matplotlib.pyplot as plt
+
 
 PICTUREHEIGHT = 128
 PICTUREWIDTH = 128
@@ -24,6 +26,16 @@ CLASSES = 2
 LEARNING_RATE = 0.005
 
 VALDATA = 'ValidataionSet'
+
+class visualise():
+    def Visualise(list,title="loss",Save_path='python/CV/Resnet50/trainingLog/default.png'):
+        for l in list:
+            plt.plot(l)
+            plt.xlabel('itterations')
+            plt.ylabel('loss')
+            plt.title(title)
+        plt.savefig(Save_path)
+        plt.show()
 
 class CreateDataset():
     def __init__(self) -> None:
