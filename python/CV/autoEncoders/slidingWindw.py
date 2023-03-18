@@ -2,7 +2,9 @@ import cv2
 import numpy as np
 import torch
 import torch.nn as nn
-import model as AutoEncModel
+import sys
+sys.path.append('python/CV/autoEncoders')
+import model_auto as AutoEncModel
 from torch.autograd import Variable
 from torchvision import transforms
 
@@ -11,8 +13,8 @@ IMGSIZE = 80
 CHANNELBASE = 32
 LATENTDIM = 128
 
-# lossFn = nn.MSELoss()
-lossFn = nn.L1Loss()
+lossFn = nn.MSELoss()
+# lossFn = nn.L1Loss()
 # lossFn = nn.SmoothL1Loss()
 
 class SlidingWindow():
@@ -23,6 +25,7 @@ class SlidingWindow():
         self.model.eval()
 
     def analyse(self,image):
+        defectList = []
         #cut image
         crops = self.cutImage(image,IMGSIZE,IMGSIZE)
         heatmap = np.zeros(image.shape, dtype=np.uint8) * 255
@@ -51,11 +54,13 @@ class SlidingWindow():
             if loss.item() > 0.15:
                 print(loss.item())
                 heatmap = self.addTileToHeatmap(heatmap,crops[i][1],crops[i][2])
+                defectList.append((crops[i][1],crops[i][2]))
         
         output = cv2.addWeighted(heatmap, 0.5, image, 1, 0)
-        cv2.imshow('map',output)
-        cv2.waitKey()
+        # cv2.imshow('map',output)
+        # cv2.waitKey()
         cv2.imwrite("python/CV/autoEncoders/heatmap.jpg",output)
+        return defectList,output
         
         
 
@@ -71,7 +76,7 @@ class SlidingWindow():
         anountH = int((h*2)-1)
         anountW = int((w*2)-1) 
 
-        print('H='+str(anountH)+'  W='+str(anountW))
+        # print('H='+str(anountH)+'  W='+str(anountW))
         counter = 0
         crops = []
 
@@ -85,7 +90,7 @@ class SlidingWindow():
                 y1=offsetH
                 y2=offsetH+frameH
                 offsetH += frameH*0.5
-                print(str(counter)+'->'+str(y1)+':'+str(y2)+','+str(x1)+':',str(x2))
+                # print(str(counter)+'->'+str(y1)+':'+str(y2)+','+str(x1)+':',str(x2))
                 crop = image[int(y1):int(y2),int(x1):int(x2)]
                 crplist = [crop,(int(x1),int(y1)),(int(x2),int(y2))]
                 crops.append(crplist)

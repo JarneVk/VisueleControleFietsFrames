@@ -3,6 +3,8 @@ import cv2
 import torch
 import glob as glob
 
+import sys
+sys.path.append('python/CV/Faster_rcnn/src')
 from model import create_model
 
 # set the computation device

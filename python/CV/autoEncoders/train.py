@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.utils.data 
 from torchvision import datasets, models, transforms
 import torch.optim as optim
-import model as AutoEncModel
+import model_auto as AutoEncModel
 from torch.autograd import Variable
 from matplotlib import pyplot as plt
 
@@ -14,13 +14,15 @@ import os
 import PIL, numpy,cv2
 import copy
 
+import clustering
+
 IMSIZE = 80
 MODEL = 3
 #voor model 3
 CHANNELBASE = 32
-LATENTDIM = 256 #64,128,256,384
+LATENTDIM = 128 #64,128,256,384
 
-EARLYSTOP = False
+EARLYSTOP = True
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -30,6 +32,7 @@ class Plotting ():
         self.trainingLoss = None
         self.lossGood = None
         self.lossBad = None
+        self.lossSmal = None
         self.channelbase = None
         self.latendim = None
         self.model_num = None
@@ -41,10 +44,11 @@ class Plotting ():
         self.latendim = latendim
         self.model_num = model_num
     
-    def setValidatResults(self,goodloss:list,badloss:list):
+    def setValidatResults(self,goodloss:list,badloss:list,smalloss:list = None):
         self.lossGood = goodloss
         self.lossBad = badloss
-    
+        self.lossSmal = smalloss
+
     def MakeResults(self):
         x=0
         for _ in os.listdir('python/CV/autoEncoders/trainingLog/autoTraining2'):
@@ -65,6 +69,8 @@ class Plotting ():
         if self.lossBad != None and self.lossGood != None:
             plt.hist(self.lossGood, bins=50,label='normal',alpha = 0.5)
             plt.hist(self.lossBad, bins=50, label='anomaly',alpha = 0.5)
+            if self.lossSmal != None:
+                plt.hist(self.lossSmal,bins=50, label='small anomaly',alpha = 0.5)
             plt.legend(loc='upper right')
             plt.title(f"autoencoder {self.model_num} Loss : c_base {self.channelbase} | latent {self.latendim}")
             plt.savefig('python/CV/autoEncoders/trainingLog/autoTraining2/lossLog_'+str(x)+'hist.png')
@@ -120,8 +126,8 @@ def trainAutoEncoder(dataset_train,t_size,dataset_test,test_size,epochs,model_nu
 
     opt = optim.Adam(model.parameters(), lr=0.0005)
 
-    # lossFn = nn.MSELoss()
-    lossFn = nn.L1Loss()
+    lossFn = nn.MSELoss()
+    # lossFn = nn.L1Loss()
     # lossFn = nn.SmoothL1Loss()
 
     print("[INFO] start training the model...")
@@ -133,7 +139,7 @@ def trainAutoEncoder(dataset_train,t_size,dataset_test,test_size,epochs,model_nu
         # loop over the training set
         for (x, _) in dataset_train:
             x = x.to(device)
-            decoded = model(x)
+            decoded,_ = model(x)
             loss = lossFn(decoded, x)
 
             opt.zero_grad()
@@ -148,7 +154,7 @@ def trainAutoEncoder(dataset_train,t_size,dataset_test,test_size,epochs,model_nu
         totalTestLoss = 0
         for (x, _) in dataset_test:
             x = x.to(device)
-            decoded = model(x)
+            decoded,_ = model(x)
             loss = lossFn(decoded, x)
 
             opt.zero_grad()
@@ -172,13 +178,14 @@ def trainAutoEncoder(dataset_train,t_size,dataset_test,test_size,epochs,model_nu
 #
 #################################################################################################################
 
-def validate(model,dir_good,dir_fouten=0):
+def validate(model,dir_good,dir_fouten=0,smal_dir = None):
     losses_good = []
     losses_bad = []
+    losses_small = []
 
     model.eval()
-    # lossFn = nn.MSELoss()
-    lossFn = nn.L1Loss()
+    lossFn = nn.MSELoss()
+    # lossFn = nn.L1Loss()
     # lossFn = nn.SmoothL1Loss()
     transform = transforms.Compose([
         #   transforms.Grayscale(num_output_channels=1),
@@ -194,15 +201,39 @@ def validate(model,dir_good,dir_fouten=0):
         dataset = datasets.ImageFolder(dir_fouten, transform=transform)
         it = 0
         totloss = 0
+        list_fouten = []
         for i in range(len(dataset)):
             img_org,_ = dataset[i]
             img = Variable(img_org, requires_grad=True)
             img = img.unsqueeze(0)
             image = img.to(device)
             with torch.no_grad():
-                deco = model(image)
+                deco,latent = model(image)
+                list_fouten.append(latent.cpu().detach().numpy())
                 loss = lossFn(deco, image)
                 losses_bad.append(loss.item())
+                totloss += loss
+            it+=1
+        print('[testing] average loss faults : {loss:.6f}'.format(loss=totloss/it))
+
+    if smal_dir ==  None:
+        print('geen smal dir meegegeven')
+    else:
+        
+        dataset = datasets.ImageFolder(smal_dir, transform=transform)
+        it = 0
+        totloss = 0
+        list_small_fouten = []
+        for i in range(len(dataset)):
+            img_org,_ = dataset[i]
+            img = Variable(img_org, requires_grad=True)
+            img = img.unsqueeze(0)
+            image = img.to(device)
+            with torch.no_grad():
+                deco,latent = model(image)
+                list_small_fouten.append(latent.cpu().detach().numpy())
+                loss = lossFn(deco, image)
+                losses_small.append(loss.item())
                 totloss += loss
             it+=1
         print('[testing] average loss faults : {loss:.6f}'.format(loss=totloss/it))
@@ -218,13 +249,15 @@ def validate(model,dir_good,dir_fouten=0):
     dataset = datasets.ImageFolder(dir_good, transform=transform)
     it = 0
     totloss = 0
+    list_good = []
     for i in range(len(dataset)):
         img,_ = dataset[i]
         img = Variable(img, requires_grad=True)
         img = img.unsqueeze(0)
         image = img.to(device)
         with torch.no_grad():
-            deco = model(image)
+            deco,latent = model(image)
+            list_good.append(latent.cpu().detach().numpy())
             loss = lossFn(deco, image)
             losses_good.append(loss.item())
             totloss += loss
@@ -232,10 +265,12 @@ def validate(model,dir_good,dir_fouten=0):
 
     print('[testing] average loss good : {loss:.6f}'.format(loss=totloss/it))
 
-    plotting.setValidatResults(losses_good,losses_bad)
+    plotting.setValidatResults(losses_good,losses_bad,losses_small)
     plotting.MakeResults()
 
-    return losses_good,losses_bad
+    clustering.Kluster(list_good,list_fouten)
+
+    return losses_good,losses_bad,losses_small
 
 
 
@@ -280,7 +315,7 @@ if __name__ == '__main__':
         # print(torch.min(immg),torch.max(immg))
         epochs = input("geef een aantal epochs: ")
         model = trainAutoEncoder(train_dataloader,tsize,test_dataloader,valsize,int(epochs))
-        good,bad = validate(model,DIR_PATH,'dataset_autoenc/bad_dir')
+        good,bad,small = validate(model,DIR_PATH,'dataset_autoenc/bad_dir','dataset_autoenc/smal_dir')
         torch.save(model.state_dict(), 'python/CV/autoEncoders/best_weights.h5')
         
 

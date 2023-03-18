@@ -12,6 +12,7 @@ class SlidingWindow:
         pass
 
     def analyse(image):
+        defectTileList = []
         #cut image
         crops = SlidingWindow.cutImage(image,IMGSIZE,IMGSIZE)
         heatmap = np.zeros(image.shape, dtype=np.uint8) * 255
@@ -36,14 +37,17 @@ class SlidingWindow:
             predict = testnet.predictSingleImage(crops[i][0])
             if predict == "bad":
                 heatmap = SlidingWindow.addTileToHeatmap(heatmap,crops[i][1],crops[i][2])
+                defectTileList.append((crops[i][1],crops[i][2]))
             if predict == "small_defect":
                 heatmap = SlidingWindow.addS_TileToHeatmap(heatmap,crops[i][1],crops[i][2])
+                defectTileList.append((crops[i][1],crops[i][2]))
         
         output = cv2.addWeighted(heatmap, 0.5, image, 1, 0)
-        cv2.imshow('map',output)
-        cv2.waitKey(1)
+        # cv2.imshow('map',output)
+        # cv2.waitKey(1)
         cv2.imwrite("python/SlidingWindow/heatmap.jpg",output)
         
+        return defectTileList,output
         
 
     #@param image = foto die meegegeven wordt
@@ -58,7 +62,7 @@ class SlidingWindow:
         anountH = int((h*2)-1)
         anountW = int((w*2)-1) 
 
-        print('H='+str(anountH)+'  W='+str(anountW))
+        # print('H='+str(anountH)+'  W='+str(anountW))
         counter = 0
         crops = []
 
@@ -72,7 +76,7 @@ class SlidingWindow:
                 y1=offsetH
                 y2=offsetH+frameH
                 offsetH += frameH*0.5
-                print(str(counter)+'->'+str(y1)+':'+str(y2)+','+str(x1)+':',str(x2))
+                # print(str(counter)+'->'+str(y1)+':'+str(y2)+','+str(x1)+':',str(x2))
                 crop = image[int(y1):int(y2),int(x1):int(x2)]
                 crplist = [crop,(int(x1),int(y1)),(int(x2),int(y2))]
                 crops.append(crplist)

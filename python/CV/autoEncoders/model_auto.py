@@ -172,10 +172,10 @@ class Decoder(nn.Module):
         )
 
     def forward(self, x):
-        x = self.linear(x)
-        x = x.reshape(x.shape[0], -1, 6, 6)
+        latent = self.linear(x)
+        x = latent.reshape(latent.shape[0], -1, 6, 6)
         x = self.net(x)
-        return x
+        return x,latent
     
 class Autoencoder_model3(pl.LightningModule):
     def __init__(
@@ -200,8 +200,8 @@ class Autoencoder_model3(pl.LightningModule):
     def forward(self, x):
         """The forward function takes in an image and returns the reconstructed image."""
         z = self.encoder(x)
-        x_hat = self.decoder(z)
-        return x_hat
+        x_hat,latent = self.decoder(z)
+        return x_hat,latent
 
     def _get_reconstruction_loss(self, batch):
         """Given a batch of images, this function returns the reconstruction loss (MSE in our case)"""

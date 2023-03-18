@@ -33,3 +33,4 @@ python/Camera/for_proces
 python/Camera/out
 ValidataionSet
 python/Camera/vid
+python/SlidingWindow/__pycache__

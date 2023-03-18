@@ -18,14 +18,14 @@ import copy
 import matplotlib.pyplot as plt
 
 
-PICTUREHEIGHT = 128
-PICTUREWIDTH = 128
+PICTUREHEIGHT = 80
+PICTUREWIDTH = 80
 
 CLASSES = 2
 LEARNING_RATE = 0.0005
-MODEL = 'resnet34'
+MODEL = 'resnet50'
 
-EARLYSTOP = True
+EARLYSTOP = False
 
 VALDATA = 'ValidataionSet'
 
@@ -260,20 +260,20 @@ class Resnet50_testModel():
     def loadModel(path):
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         if MODEL == 'resnet34':
-            model = models.resnet34(weights=path).to(device)
+            model = models.resnet34().to(device)
             for param in model.parameters():
                 param.requires_grad = False
             model.fc = nn.Linear(512, CLASSES).to(device)
 
         elif MODEL == 'resnet101':
-            model = models.resnet101(weights=path).to(device)
+            model = models.resnet101().to(device)
             for param in model.parameters():
                 param.requires_grad = False
             num_features = model.fc.in_features
             model.fc = nn.Linear(num_features, CLASSES).to(device)
 
         else:
-            model = models.resnet50(weights=path).to(device)
+            model = models.resnet50().to(device)
             for param in model.parameters():
                 param.requires_grad = False
             model.fc = nn.Sequential(
