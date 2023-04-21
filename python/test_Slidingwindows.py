@@ -1,15 +1,17 @@
 from SlidingWindow import SlidingWindow as sl_resnet
-from CV.autoEncoders import slidingWindw as sl_auto
+from CV.autoEncoders import SlidingWindow_subtract as sl_auto
+from CV.autoEncoders import slidingWindw as sl_auto_cossim
 from CV.Faster_rcnn.src import detect_image
 
 import cv2
-import os
+import os, time
 from pathlib import Path
 
 from dataclasses import dataclass
 
 RESNET = True
 AUTO = True
+AUTO_COSIN = False
 FASTER = True
 
 @dataclass
@@ -78,8 +80,8 @@ def calsScore(annotationList:list[tuple],defectList:list[tuple],heatmap=None):
         if overlap == False:
             fp += 1
     
-    for i in detected:
-        if i == 0:
+    for idx,i in enumerate(detected):
+        if i == 0 and int(annotationList[idx][0]) == 0:
             fn += 1
     
     return fp,fn,tp
@@ -96,9 +98,30 @@ def calcRecal_and_precission(fp:int,fn:int,tp:int):
 def showResult(heatmap,annotations:list[tuple]):
 
     for a in annotations:
-        cv2.rectangle(heatmap, (a[1].x, a[1].y), (a[2].x, a[2].y), (0, 0, 255), 1)
+        if a[0] == 0:       #groot defect
+            cv2.rectangle(heatmap, (a[1].x, a[1].y), (a[2].x, a[2].y), (255, 0, 0), 1)
+        else:               #small defect
+            cv2.rectangle(heatmap, (a[1].x, a[1].y), (a[2].x, a[2].y), (255, 255, 0), 1)
+        
     cv2.imshow('img',heatmap)
-    cv2.waitKey(1)
+    cv2.waitKey(500)
+    return heatmap
+
+def showFasterResult(image, annotations, boundingboxes):
+    for a in annotations:
+        if a[0] == 0:       #groot defect
+            cv2.rectangle(image, (a[1].x, a[1].y), (a[2].x, a[2].y), (255, 0, 0), 1)
+        else:               #small defect
+            cv2.rectangle(image, (a[1].x, a[1].y), (a[2].x, a[2].y), (255, 255, 0), 1)
+          
+    for b in boundingboxes:
+        cv2.rectangle(image,(int(b[0][0]), int(b[0][1])),
+                            (int(b[1][0]), int(b[1][1])),
+                            (0, 0, 255), 2)
+
+    cv2.imshow('img',image)
+    cv2.waitKey(500)
+    return image
 
 
 def main(dirpath:str):
@@ -107,58 +130,119 @@ def main(dirpath:str):
     recal_resnet_tot = 0
     precision_auto_tot = 0
     recal_auto_tot = 0
+    precision_auto_tot_cos = 0
+    recal_auto_tot_cos = 0
     precision_faster_tot = 0
     recal_faster_tot = 0
+
+    time_resnet = 0
+    time_auto = 0
+    time_faster = 0
+
+    resnet_tot_fp = 0
+    resnet_tot_tp = 0
 
     #get pictures in dir
     images = Path(dirpath).glob('*.jpg')
     slAuto = sl_auto.SlidingWindow()
     fasterRCNN = detect_image.detect_image()
+    slAuto_cosim = sl_auto_cossim.SlidingWindow()
     count = 0
     for pic in images:
 
         anottatioList = checkAnnotation(str(pic))
+        BigDefect = False
+        for a in anottatioList:
+            if a[0] == 0:
+                BigDefect = True
 
         cv_pic = cv2.imread(str(pic))
 
         if RESNET == True:
+            begin = time.time()
             defectTiles_resnet,heatmap_resnet = sl_resnet.SlidingWindow.analyse(cv_pic)
             cv2.destroyAllWindows()
+            time_resnet += time.time() - begin
             fp,fn,tp = calsScore(anottatioList,defectTiles_resnet,heatmap=heatmap_resnet)
-            precion_resnet, recal_resnet = calcRecal_and_precission(fp,fn,tp)
+            resnet_tot_fp += fp
+            resnet_tot_tp += tp
+            if BigDefect == False and len(defectTiles_resnet)==0:
+                precion_resnet = 1
+                recal_resnet = 1
+            else:
+                precion_resnet, recal_resnet = calcRecal_and_precission(fp,fn,tp)
             print(f"[Resnet50] precision {precion_resnet}  | recal {recal_resnet}")
-            showResult(heatmap_resnet,anottatioList)
+            out_heatmap = showResult(heatmap_resnet,anottatioList)
+            cv2.imwrite("test_accuracy_out/"+str(count)+"_resnet.jpg",out_heatmap)
             precision_resnet_tot += precion_resnet
             recal_resnet_tot += recal_resnet
             cv2.destroyAllWindows()
 
         if AUTO == True:
+            begin = time.time()
             defectTiles_auto,heatmap_auto = slAuto.analyse(cv_pic)
             cv2.destroyAllWindows()
+            time_auto += time.time() - begin
             fp,fn,tp = calsScore(anottatioList,defectTiles_auto,heatmap=heatmap_auto)
-            precion_auto, recal_auto = calcRecal_and_precission(fp,fn,tp)
+            if BigDefect == False and len(defectTiles_auto)==0:
+                precion_auto = 1
+                recal_auto = 1
+            else:
+                precion_auto, recal_auto = calcRecal_and_precission(fp,fn,tp)
             print(f"[autoEnco] precision {precion_auto}  | recal {recal_auto}")
-            showResult(heatmap_auto,anottatioList)
+            out_heatmap = showResult(heatmap_auto,anottatioList)
+            cv2.imwrite("test_accuracy_out/"+str(count)+"_auto.jpg",out_heatmap)
             precision_auto_tot += precion_auto
             recal_auto_tot += recal_auto
             cv2.destroyAllWindows()
 
+        if AUTO_COSIN==True:
+            ################ cosim ##################################################
+            defectTiles_auto,heatmap_auto = slAuto_cosim.analyse(cv_pic)
+            cv2.destroyAllWindows()
+            fp,fn,tp = calsScore(anottatioList,defectTiles_auto,heatmap=heatmap_auto)
+            if len(anottatioList)==0 and len(defectTiles_auto)==0:
+                precion_auto = 1
+                recal_auto = 1
+            else:
+                precion_auto, recal_auto = calcRecal_and_precission(fp,fn,tp)
+            print(f"[autoEnco Cosinsim] precision {precion_auto}  | recal {recal_auto}")
+            out_heatmap = showResult(heatmap_auto,anottatioList)
+            cv2.imwrite("test_accuracy_out/"+str(count)+"_auto_cosim.jpg",out_heatmap)
+            precision_auto_tot_cos += precion_auto
+            recal_auto_tot_cos += recal_auto
+            cv2.destroyAllWindows()
+
         if FASTER == True:
+            begin = time.time()
             boxes = fasterRCNN.detect(cv_pic)
+            time_faster += time.time() - begin
             fp,fn,tp = calsScore(anottatioList,boxes)
-            precion_faster, recal_faster = calcRecal_and_precission(fp,fn,tp)    
-            print(f"[autoEnco] precision {precion_faster}  | recal {recal_faster}")   
+            if BigDefect == False and len(boxes)==0:
+                precion_faster = 1
+                recal_faster = 1
+            else:
+                precion_faster, recal_faster = calcRecal_and_precission(fp,fn,tp)    
+            print(f"[FasterRcnn] precision {precion_faster}  | recal {recal_faster}")   
             precision_faster_tot += precion_faster
             recal_faster_tot += recal_faster
+            out = showFasterResult(cv_pic,anottatioList,boxes)
+            cv2.imwrite("test_accuracy_out/"+str(count)+"_faster.jpg",out)
             cv2.destroyAllWindows()
 
 
 
         count +=1
 
-    print(f"[total results] Resnet50    : precision {precision_resnet_tot/float(count)} | recal {recal_resnet_tot/float(count)}")
-    print(f"[total results] autoEncoder : precision {precision_auto_tot/float(count)} | recal {recal_auto_tot/float(count)}")
-    print(f"[total results] fasterRCNN  : precision {precision_faster_tot/float(count)} | recal {recal_faster_tot/float(count)}")
+    if RESNET:
+        print(f"[total results] Resnet50    : precision {precision_resnet_tot/float(count)} | recal {recal_resnet_tot/float(count)} in {time_resnet} sec")
+        print(f"[ResNet info] total fp: {resnet_tot_fp} ; total tp: {resnet_tot_tp}")
+    if AUTO:
+        print(f"[total results] autoEncoder : precision {precision_auto_tot/float(count)} | recal {recal_auto_tot/float(count)} in {time_auto} sec")
+    if AUTO_COSIN:
+        print(f"[total results] autoEncoder Cosin sim : precision {precision_auto_tot_cos/float(count)} | recal {recal_auto_tot_cos/float(count)}")
+    if FASTER:
+        print(f"[total results] fasterRCNN  : precision {precision_faster_tot/float(count)} | recal {recal_faster_tot/float(count)} in {time_faster} sec")
 
     
 

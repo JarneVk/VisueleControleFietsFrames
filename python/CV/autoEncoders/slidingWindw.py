@@ -5,6 +5,7 @@ import torch.nn as nn
 import sys
 sys.path.append('python/CV/autoEncoders')
 import model_auto as AutoEncModel
+import cosineSim
 from torch.autograd import Variable
 from torchvision import transforms
 
@@ -19,11 +20,13 @@ lossFn = nn.MSELoss()
 
 class SlidingWindow():
     def __init__(self) -> None:
-        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        self.model = AutoEncModel.Autoencoder_model3(CHANNELBASE,LATENTDIM,num_input_channels=3).to(self.device)
-        self.model.load_state_dict(torch.load('python/CV/autoEncoders/best_weights.h5'))
-        self.model.eval()
+        # self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        # self.model = AutoEncModel.Autoencoder_model3(CHANNELBASE,LATENTDIM,num_input_channels=3).to(self.device)
+        # self.model.load_state_dict(torch.load('python/CV/autoEncoders/best_weights.h5'))
+        # self.model.eval()
 
+        # self.Difin = DifInOut.DifInOut()
+        self.cos = cosineSim.cosineSim()
     def analyse(self,image):
         defectList = []
         #cut image
@@ -39,22 +42,42 @@ class SlidingWindow():
             cv2.waitKey(1)
             
             #check for fault in neural netwerk
-            loader = transforms.Compose([ transforms.ToTensor(),transforms.Resize(IMGSIZE)])
-            image_tensor = loader(crops[i][0]).float() 
-            image_tensor = Variable(image_tensor, requires_grad=True)
-            image_tensor = image_tensor.unsqueeze(0)
-            image_tensor.cuda()
-            img = Variable(image_tensor, requires_grad=True)
-            img = img.to(self.device)
-            with torch.no_grad():
-                deco = self.model(img)
-                loss = lossFn(deco, img)
+            # loader = transforms.Compose([ transforms.ToTensor(),transforms.Resize(IMGSIZE)])
+            # image_tensor = loader(crops[i][0]).float() 
+            # image_tensor = Variable(image_tensor, requires_grad=True)
+            # image_tensor = image_tensor.unsqueeze(0)
+            # image_tensor.cuda()
+            # img = Variable(image_tensor, requires_grad=True)
+            # img = img.to(self.device)
+            # with torch.no_grad():
+            #     deco,_ = self.model(img)
+            #     loss = lossFn(deco, img)
+
+            
 
             # print(loss.item())
-            if loss.item() > 0.15:
-                print(loss.item())
+            # if loss.item() > 0.15:
+            #     print(loss.item())
+            #     heatmap = self.addTileToHeatmap(heatmap,crops[i][1],crops[i][2])
+            #     defectList.append((crops[i][1],crops[i][2]))
+
+
+            ###################################################################################
+            # deco = self.Difin.evalImage(crops[i][0])
+            # s =DifInOut.DifInOut.getScoreDif(im,deco)
+
+            # if s > 0.004:
+            #     print(s)
+            #     heatmap = self.addTileToHeatmap(heatmap,crops[i][1],crops[i][2])
+            #     defectList.append((crops[i][1],crops[i][2]))
+
+
+            ############################## subtraction ########################################
+            score = self.cos.calcSimulatrityScore(crops[i][0])
+            if score == "bad":
                 heatmap = self.addTileToHeatmap(heatmap,crops[i][1],crops[i][2])
                 defectList.append((crops[i][1],crops[i][2]))
+
         
         output = cv2.addWeighted(heatmap, 0.5, image, 1, 0)
         # cv2.imshow('map',output)

@@ -4,7 +4,7 @@ import os, shutil
 import random
 
 #soorten exententies
-ORIGINAL = 1
+ORIGINAL = 0
 ORIENTATIE = 1
 MIRROR = 1
 
@@ -23,11 +23,11 @@ def processing(image):
     return transformed["image"]
 
 def extendDataset(new_dir:str, old_dir:str):
-    shutil.rmtree(new_dir)
-    os.makedirs(new_dir)
-    os.makedirs(os.path.join(new_dir,"good"))
-    os.makedirs(os.path.join(new_dir,"bad"))
-    os.makedirs(os.path.join(new_dir,"small_defect"))
+    # shutil.rmtree(new_dir)
+    # os.makedirs(new_dir)
+    # os.makedirs(os.path.join(new_dir,"good"))
+    # os.makedirs(os.path.join(new_dir,"bad"))
+    # os.makedirs(os.path.join(new_dir,"small_defect"))
     
     for maps in os.listdir(old_dir):
         count = 0
@@ -41,7 +41,7 @@ def extendDataset(new_dir:str, old_dir:str):
                 if lijst[ran] == 0:
                     lijst[ran]=1
                     next =1
-            
+
         x = 0
         for file in os.listdir(os.path.join(old_dir,maps)):
             #copy original files
@@ -49,7 +49,7 @@ def extendDataset(new_dir:str, old_dir:str):
                 image = cv2.imread(os.path.join(old_dir,maps,file))
                 im_out=processing(image)
                 cv2.imwrite(os.path.join(new_dir,maps,"_copy_"+file),im_out)
-            if lijst[x] ==1 and maps=="bad":
+            if lijst[x] ==1 : # and maps=="bad":
                 #roteer willekeurig aantal * 90gr
                 if x%2 != 0:
                     if ORIENTATIE ==1:
@@ -75,4 +75,4 @@ def extendDataset(new_dir:str, old_dir:str):
         print(maps+" processed")
 
 if __name__ == "__main__":
-    extendDataset("dataset_2","dataset")
+    extendDataset("dataset_autoenc/good_dir","dataset_autoenc/good_dir")

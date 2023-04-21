@@ -16,6 +16,7 @@ import os
 import io
 import copy
 import matplotlib.pyplot as plt
+from torchmetrics.classification import BinaryPrecisionRecallCurve
 
 
 PICTUREHEIGHT = 80
@@ -33,16 +34,102 @@ class visualise():
     def Visualise(list,title="loss",Save_path='python/CV/Resnet50/trainingLog/default.png'):
         ax = plt.gca()
         ax.set_ylim([0, 1])
-        for l in list:
-            plt.plot(l)
-            plt.xlabel('itterations')
-            plt.ylabel('loss')
-            plt.title(title)
+        plt.plot(list[0],label="train")
+        plt.plot(list[1],label="validation")
+        plt.plot(list[2],label="test")
+        plt.xlabel('itterations')
+        plt.ylabel('loss')
+        plt.legend(loc='upper right')
+        plt.title(title)
+        print(f"plot saved ad {Save_path}")
         plt.savefig(Save_path)
         plt.show()
 
+class StatisticsLog():
+    def __init__(self):
+        self.lijsten = []
+        self.title = 'resnet'
+
+    def clearLijst(self):
+        self.lijsten = []
+
+    def setTitle(self,title:str):
+        self.title = title
+
+    def appendToLijst(self,lijst:list):
+        self.lijsten.append(lijst)          # [training,test,validation]
+
+    def calcstatistics(self):
+        sigma_train = []
+        mean_train = []
+
+        tmp_list = []
+
+        max_anount = 0
+        for i in self.lijsten[0]:
+            if len(i)>max_anount:
+                max_anount = len(i)
+
+        for idx in range(max_anount):
+            for i in self.lijsten[0]:
+                try:
+                    tmp_list.append(i[idx])
+                except Exception:
+                    pass
+            mean_train.append(np.mean(tmp_list))
+            sigma_train.append(np.std(tmp_list))
+            tmp_list = []
+
+        mean_test = []
+        sigma_test = []
+
+        for idx in range(max_anount):
+            for i in self.lijsten[1]:
+                try:
+                    tmp_list.append(i[idx])
+                except Exception:
+                    pass
+            mean_test.append(np.mean(tmp_list))
+            sigma_test.append(np.std(tmp_list))
+            tmp_list = []
+
+        mean_val = []
+        sigma_val = []
+
+        for idx in range(max_anount):
+            for i in self.lijsten[2]:
+                try:
+                    tmp_list.append(i[idx])
+                except Exception:
+                    pass
+            mean_val.append(np.mean(tmp_list))
+            sigma_val.append(np.std(tmp_list))
+            tmp_list = []
+
+        xas = list(range(0,max_anount))
+        print(xas)
+        print(mean_train)
+        plt.plot(xas,mean_train, color="blue",label="train")
+        plt.plot(xas,mean_test, color="magenta",label="validation")
+        plt.plot(xas,mean_val, color="green",label="test")
+        mean_train = np.array(mean_train)
+        sigma_train = np.array(sigma_train)
+        mean_test = np.array(mean_test)
+        sigma_test = np.array(sigma_test)
+        plt.fill_between(xas,mean_train-sigma_train,mean_train+sigma_train, color="blue",label="train",alpha=0.2)
+        plt.fill_between(xas,mean_test-sigma_test,mean_test+sigma_test, color="magenta",label="validation",alpha=0.2)
+
+        plt.legend(loc='upper right')
+        plt.xlabel('itterations')
+        plt.ylabel('loss')
+        plt.title(self.title)
+        plt.show()
+
+statlog = StatisticsLog()
+
+
 class EarlyStopping():
-  def __init__(self, patience=10, min_delta=0, restore_best_weights=True):
+  def __init__(self, patience=20, min_delta=0, restore_best_weights=True):
     self.patience = patience
     self.min_delta = min_delta
     self.restore_best_weights = restore_best_weights
@@ -81,11 +168,11 @@ class CreateDataset():
           transforms.Resize((PICTUREWIDTH,PICTUREHEIGHT)),
           transforms.ToTensor()
           ])
-        batch_size = 16
+        batch_size = 32
         dataset = datasets.ImageFolder(dir_path, transform=transform)
         classmapping = dataset.class_to_idx
         print("dataset has a size of : "+str(len(dataset)))
-        train_aant = int(len(dataset)*0.80)
+        train_aant = int(len(dataset)*0.8)
         test_aant = len(dataset)-train_aant
 
         train_x, test_y = torch.utils.data.random_split(dataset,[train_aant,test_aant])
@@ -98,7 +185,7 @@ class CreateDataset():
         valdataset = datasets.ImageFolder(VALDATA, transform=transform)
         val_dataloader = DataLoader(valdataset, batch_size=batch_size)
 
-        return train_dataloader, test_dataloader,len(train_x),len(test_y),test_y,val_dataloader,len(valdataset)
+        return train_dataloader, test_dataloader,len(train_x),len(test_y),test_y,val_dataloader,len(valdataset),valdataset
 
 class Resnet50_CreateModel():
     def __init__(self,train_dataloader, test_dataloader,val_dataset,num_epochs=3):
@@ -187,7 +274,7 @@ class Resnet50_CreateModel():
                     epoch_loss = running_loss / float(tsize) 
                     epoch_acc = running_corrects.double() / float(tsize)
                     t_loss_list.append(epoch_loss)
-                    self.loging.write('train_loss:'+str(epoch_loss)+'\n')
+                    # self.loging.write('train_loss:'+str(epoch_loss)+'\n')
                 elif phase == 'test':
                     rp=0
                     fp=0
@@ -208,7 +295,7 @@ class Resnet50_CreateModel():
                     epoch_loss = running_loss / valsize 
                     epoch_acc = running_corrects.double() / valsize 
                     test_loss_list.append(epoch_loss)
-                    self.loging.write('test_loss:'+str(epoch_loss)+'\n')
+                    # self.loging.write('test_loss:'+str(epoch_loss)+'\n')
                     print('ealyStrop: [{}]'.format(earlstop.status))
                     if earlstop(model,epoch_loss) and EARLYSTOP:
                         t_tijd = time.time() - t_start
@@ -233,7 +320,7 @@ class Resnet50_CreateModel():
                     epoch_loss = running_loss / size_val
                     epoch_acc = running_corrects.double() / size_val 
                     v_loss_list.append(epoch_loss)
-                    self.loging.write('val_loss:'+str(epoch_loss)+'\n')
+                    # self.loging.write('val_loss:'+str(epoch_loss)+'\n')
 
                 print('{} loss: {:.4f}, acc: {:.4f}'.format(phase,
                                                             epoch_loss,
@@ -244,6 +331,10 @@ class Resnet50_CreateModel():
         lijst = [t_loss_list,test_loss_list,v_loss_list]
         title = str(MODEL)+" |  loss: epochs "+str(num_epochs)+" | lr "+str(LEARNING_RATE)+" | earlyStop "+str(EARLYSTOP)
         visualise.Visualise(lijst,title,self.saveLogPict)
+
+        # statlog.appendToLijst(lijst)
+        # statlog.setTitle(title)
+
         return earlstop.getBestModel()
 
 
@@ -309,43 +400,38 @@ class Resnet50_testModel():
         rn = 0
 
         dataset = datasets.ImageFolder(dir_path, transform=self.transform)
-        for i in range(len(dataset)):
-            img,label = dataset[i]
-            img = Variable(img, requires_grad=True)
-            img = img.unsqueeze(0)
-            image = img.to(self.device)
-            prediction = self.predict(image)
-            expected = list(self.mapping)[label]
-            #print(f"predicted: {prediction} <-> expected: {expected}")
-            if prediction == "good":
-                if expected == "good":
-                    rp+=1
-                else:
-                    fp+=1
-            elif prediction == "bad":
-                if expected == "bad":
-                    rn+=1
-                else:
-                    fn+=1
-        data = [[rp,fp],[fn,rn]]
-        headers=["good", "bad"]
-        print("_____|expected")
-        print("pred |")
-        print(pandas.DataFrame(data, headers, headers))
+        self.predictDatasetBySetInput(dataset)
 
     def predictDatasetBySetInput(self,dataset):
         rp=0
         fp=0
         fn=0
         rn = 0
+        y_pred=[]
+        y_true=[]
         for i in range(len(dataset)):
             img,label = dataset[i]
             img = Variable(img, requires_grad=True)
             img = img.unsqueeze(0)
             image = img.to(self.device)
-            prediction = self.predict(image)
+            self.model.eval()
+            with torch.no_grad():
+                pred = self.model(image)
+                pred_idx = pred[0].argmax(0)
+                #print(f"classmap:{self.mapping} -> index: {pred_idx.item()}")
+                prediction = list(self.mapping)[pred_idx.item()]
+                probs = torch.nn.functional.softmax(pred, dim=1)
+                predscore = probs.cpu().detach().numpy()
+                # print((predscore[:, 1])[0])
+                # conf, classes = torch.max(probs, 1)
+                # predscore = conf.cpu().detach().item()
+                y_pred.append((predscore[:, 1])[0])
+                y_true.append(label)
+
             expected = list(self.mapping)[label]
             #print(f"predicted: {prediction} <-> expected: {expected}")
+
+
             if prediction == "good":
                 if expected == "good":
                     rp+=1
@@ -361,7 +447,32 @@ class Resnet50_testModel():
         print("_____|expected")
         print("pred |")
         print(pandas.DataFrame(data, headers, headers))
+        try:
+            precission = rp/(rp+fp)
+            recal = rp/(rp+fn)
+        except ZeroDivisionError:
+            precission = 0
+            recal = 0
+        print(f"calc precision: {precission} | recal: {recal}")
+
+
+        preds = torch.tensor(y_pred)
+        target = torch.tensor(y_true)
+        bprc = BinaryPrecisionRecallCurve(thresholds=None)
+
+        precision, recall, thresholds = bprc(preds, target)
+        precision = precision.detach().numpy()
+        recall = recall.detach().numpy()
+        thresholds = thresholds.detach().numpy()
             
+        ax = plt.gca()
+        ax.set_ylim([0.8, 1])
+        ax.set_xlim([0.5, 1])  
+        plt.plot(recall,precision,label="precision-recall")
+        plt.xlabel('recall')
+        plt.ylabel('precision')
+        plt.title('PR-curve')
+        plt.show()
 
 
     def predict(self,input):
@@ -377,16 +488,20 @@ if __name__ == '__main__':
     DIR_PATH = "dataset_2"
     input_str = input("test or train? :")
     if input_str == "train":
-        #----------------------------------- creating dataset -------------------------------------------
-        train_dataloader, test_dataloader,tsize,valsize,test_y,val_dataset,size_val = CreateDataset.LoadDataset(DIR_PATH)
-        #-----------------------------------   train model    -------------------------------------------
-        epochs = int(input('amount of epochs :'))
-        resnet = Resnet50_CreateModel(train_dataloader, test_dataloader,val_dataset,epochs)
-        model_trained = resnet.train(tsize,valsize,size_val)
-        #-----------------------------------    save model    -------------------------------------------
-        torch.save(model_trained.state_dict(), 'python/CV/Resnet50/weights.h5') 
+        epochs = int(input('amount of epochs : '))
+        aant_t = int(input("aantal trainingen : "))
+        for i in range(aant_t):
+            #----------------------------------- creating dataset -------------------------------------------
+            train_dataloader, test_dataloader,tsize,valsize,test_y,val_dataset,size_val,valdataset = CreateDataset.LoadDataset(DIR_PATH)
+            #-----------------------------------   train model    -------------------------------------------
+            resnet = Resnet50_CreateModel(train_dataloader, test_dataloader,val_dataset,epochs)
+            model_trained = resnet.train(tsize,valsize,size_val)
+            #-----------------------------------    save model    -------------------------------------------
+            torch.save(model_trained.state_dict(), 'python/CV/Resnet50/weights.h5') 
 
-        Resnet50_testModel(model_trained).predictDatasetBySetInput(test_y)
+            Resnet50_testModel(model_trained).predictDatasetBySetInput(valdataset)
+        # statlog.calcstatistics()
+        # statlog.clearLijst()
 
     elif input_str == "test":
         #-----------------------------------    load model    -------------------------------------------

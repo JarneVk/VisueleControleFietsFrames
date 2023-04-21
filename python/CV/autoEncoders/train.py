@@ -15,14 +15,21 @@ import PIL, numpy,cv2
 import copy
 
 import clustering
+from torchsummary import summary
 
 IMSIZE = 80
 MODEL = 3
 #voor model 3
-CHANNELBASE = 32
-LATENTDIM = 128 #64,128,256,384
+CHANNELBASE = 48
+LATENTDIM = 384 #64,128,256,384
+
+conf_file = open("python/CV/autoEncoders/NetorkConf.txt","w")
+conf_file.write(f"{MODEL};{CHANNELBASE};{LATENTDIM}")
+conf_file.close()
 
 EARLYSTOP = True
+
+KLUSERING = False
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -51,7 +58,7 @@ class Plotting ():
 
     def MakeResults(self):
         x=0
-        for _ in os.listdir('python/CV/autoEncoders/trainingLog/autoTraining2'):
+        for _ in os.listdir('python/CV/autoEncoders/trainingLog/autoTraining3'):
             x+=1
         if self.trainingLoss != None and self.testingLoss != None:
             ax = plt.gca()
@@ -62,7 +69,7 @@ class Plotting ():
             plt.ylabel('loss')
             plt.title('loss_progress')
             plt.legend(loc='upper right')
-            plt.savefig('python/CV/autoEncoders/trainingLog/autoTraining2/lossLog_'+str(x)+'.png')
+            plt.savefig('python/CV/autoEncoders/trainingLog/autoTraining3/lossLog_'+str(x)+'.png')
             # plt.show()
             plt.clf()
 
@@ -72,8 +79,8 @@ class Plotting ():
             if self.lossSmal != None:
                 plt.hist(self.lossSmal,bins=50, label='small anomaly',alpha = 0.5)
             plt.legend(loc='upper right')
-            plt.title(f"autoencoder {self.model_num} Loss : c_base {self.channelbase} | latent {self.latendim}")
-            plt.savefig('python/CV/autoEncoders/trainingLog/autoTraining2/lossLog_'+str(x)+'hist.png')
+            plt.title(f"autoencoder {self.model_num} loss : c_base {self.channelbase} | latent {self.latendim} ") #: c_base {self.channelbase} | latent {self.latendim}
+            plt.savefig('python/CV/autoEncoders/trainingLog/autoTraining3/lossLog_'+str(x)+'hist.png')
             # plt.show()s
             plt.clf()
 
@@ -87,7 +94,7 @@ plotting = Plotting()
 
 def LoadDataset(dir_path):
     transform = transforms.Compose([
-        # transforms.Grayscale(num_output_channels=1), #convert to grayscale image
+        transforms.Grayscale(num_output_channels=1), #convert to grayscale image
         transforms.Resize((IMSIZE,IMSIZE)),
         transforms.ToTensor()
         ])
@@ -115,13 +122,17 @@ def trainAutoEncoder(dataset_train,t_size,dataset_test,test_size,epochs,model_nu
     print("[INFO] initializing the model...")
     model = None
     if model_num == 1:
-        model = AutoEncModel.Autoencoder(num_input_chennels=3).to(device)
+        model = AutoEncModel.Autoencoder(num_input_chennels=1).to(device)
     elif model_num == 2:
-       model = AutoEncModel.Autoencoder_model2(num_input_chennels=3).to(device)
+       model = AutoEncModel.Autoencoder_model2(num_input_chennels=1).to(device)
     elif model_num == 3:
-        model = AutoEncModel.Autoencoder_model3(base_channel_size,latent_dim,num_input_channels=3).to(device)
+        model = AutoEncModel.Autoencoder_model3(base_channel_size,latent_dim,num_input_channels=1).to(device)
+    elif model_num == 4:
+        model = AutoEncModel.Autoencoder_model4(base_channel_size,latent_dim,num_input_channels=1).to(device) 
     else:
        raise IndexError ('fout argument model_num')
+    # summary(model, input_size=(1, IMSIZE, IMSIZE))
+    print(model)
     es = EarlyStopping()
 
     opt = optim.Adam(model.parameters(), lr=0.0005)
@@ -188,7 +199,7 @@ def validate(model,dir_good,dir_fouten=0,smal_dir = None):
     # lossFn = nn.L1Loss()
     # lossFn = nn.SmoothL1Loss()
     transform = transforms.Compose([
-        #   transforms.Grayscale(num_output_channels=1),
+          transforms.Grayscale(num_output_channels=1),
           transforms.Resize((IMSIZE,IMSIZE)),
           transforms.ToTensor()
           ])
@@ -209,7 +220,8 @@ def validate(model,dir_good,dir_fouten=0,smal_dir = None):
             image = img.to(device)
             with torch.no_grad():
                 deco,latent = model(image)
-                list_fouten.append(latent.cpu().detach().numpy())
+                if KLUSERING:
+                    list_fouten.append(latent.cpu().detach().numpy())
                 loss = lossFn(deco, image)
                 losses_bad.append(loss.item())
                 totloss += loss
@@ -231,7 +243,8 @@ def validate(model,dir_good,dir_fouten=0,smal_dir = None):
             image = img.to(device)
             with torch.no_grad():
                 deco,latent = model(image)
-                list_small_fouten.append(latent.cpu().detach().numpy())
+                if KLUSERING:
+                    list_small_fouten.append(latent.cpu().detach().numpy())
                 loss = lossFn(deco, image)
                 losses_small.append(loss.item())
                 totloss += loss
@@ -257,7 +270,8 @@ def validate(model,dir_good,dir_fouten=0,smal_dir = None):
         image = img.to(device)
         with torch.no_grad():
             deco,latent = model(image)
-            list_good.append(latent.cpu().detach().numpy())
+            if KLUSERING:
+                list_good.append(latent.cpu().detach().numpy())
             loss = lossFn(deco, image)
             losses_good.append(loss.item())
             totloss += loss
@@ -268,14 +282,67 @@ def validate(model,dir_good,dir_fouten=0,smal_dir = None):
     plotting.setValidatResults(losses_good,losses_bad,losses_small)
     plotting.MakeResults()
 
-    clustering.Kluster(list_good,list_fouten)
+    if KLUSERING:
+        clustering.Kluster(list_good,list_fouten)
 
     return losses_good,losses_bad,losses_small
 
+def calcRecal_and_precission(fp:int,fn:int,tp:int):
+    try:
+        precission = tp/(tp+fp)
+        recal = tp/(tp+fn)
+    except ZeroDivisionError:
+        precission = 0
+        recal = 0
+    return precission,recal
+
+def getPrecisionRecal(losses_good,losses_bad,losses_small):
+
+    precisions = []
+    recalls = []
+    tp=0
+    fp=0
+    fn=0
+    tresh = 0
+    while tresh<0.01:
+        for g in losses_good:
+            if g>tresh:
+                fp +=1
+
+        for b in losses_bad:
+            if b>tresh:
+                tp+=1
+            else:
+                fn+=1
+        
+        precission,recal = calcRecal_and_precission(fp,fn,tp)
+        precisions.append(precission)
+        recalls.append(recal)
+        tresh+=0.0005
+
+    best = 0
+    best_idx = 0
+    for i in range(len(precisions)):
+        if precisions[i]*recalls[i]>best:
+            best = precisions[i]*recalls[i]
+            best_idx = i
+    
+    print(f"best presicion: {precisions[best_idx]} | recal: {recalls[best_idx]}")
+    print(f"at threshhold {0.005*best_idx}")
+
+
+    ax = plt.gca()
+    # ax.set_ylim([0.8, 1])
+    # ax.set_xlim([0.5, 1])  
+    plt.plot(recalls,precisions,label="precision-recall")
+    plt.xlabel('recall')
+    plt.ylabel('precision')
+    plt.title('PR-curve')
+    plt.show()
 
 
 class EarlyStopping():
-  def __init__(self, patience=10, min_delta=0, restore_best_weights=True):
+  def __init__(self, patience=20, min_delta=0, restore_best_weights=True):
     self.patience = patience
     self.min_delta = min_delta
     self.restore_best_weights = restore_best_weights
@@ -315,9 +382,10 @@ if __name__ == '__main__':
         # print(torch.min(immg),torch.max(immg))
         epochs = input("geef een aantal epochs: ")
         model = trainAutoEncoder(train_dataloader,tsize,test_dataloader,valsize,int(epochs))
-        good,bad,small = validate(model,DIR_PATH,'dataset_autoenc/bad_dir','dataset_autoenc/smal_dir')
+        good,bad,small = validate(model,"dataset_autoenc/val_dir_train",'dataset_autoenc/bad_dir','dataset_autoenc/smal_dir')
         torch.save(model.state_dict(), 'python/CV/autoEncoders/best_weights.h5')
         
+        getPrecisionRecal(good,bad,small)
 
 
 

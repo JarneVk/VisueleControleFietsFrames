@@ -12,6 +12,7 @@ class imProcessing():
         mask = cv2.inRange(imgHSV, low, high)
         mask = 255-mask #reverse mask
         output = cv2.bitwise_and(image, image, mask=mask)
+        # cv2.imwrite("20_rmC.jpg",output)
         return output
 
     def threshhold(img,rm_img):
@@ -28,6 +29,7 @@ class imProcessing():
         crop_mask = mask[y:y+h,x:x+w]
         crop_img = img[y:y+h,x:x+w]
         image = cv2.bitwise_and(crop_img, crop_img, mask=crop_mask)
+        # cv2.imwrite("20_th.jpg",image)
         return image
 
     def treshLines(image):
@@ -39,6 +41,7 @@ class imProcessing():
         cnt = cv2.findNonZero(threshhold)
         x,y,w,h = cv2.boundingRect(cnt)
         output = image[y:y+h,x:x+w]
+        # cv2.imwrite("20_out.jpg",output)
         return output
 
     def processChain(img):
@@ -58,5 +61,9 @@ if __name__ == '__main__':
         im = cv2.imread(os.path.join("python/Camera/for_proces",filename))
         output = imProcessing.processChain(im)
         cv2.imwrite(os.path.join("python/Camera/out",filename),output)
+
+    # im = cv2.imread("python/Camera/for_proces/20.jpg")
+    # output = imProcessing.processChain(im)
+
 
         

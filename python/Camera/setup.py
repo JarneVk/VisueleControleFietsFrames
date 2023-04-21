@@ -201,20 +201,24 @@ class Camera ():
         frame = self.takePicture()
         h,w,_ = frame.shape
         size = (w,h)
-        pathOut = 'python/Camera/tmp_pict/video_'+str(startIndex)+'.mp4'
-        fps = 30
-        out = cv2.VideoWriter(pathOut,cv2.VideoWriter_fourcc(*'MP4V'), fps, size)
+        pathOut = 'python/Camera/tmp_pict/video_'+str(startIndex)+'.avi'
+        fps = 15
+        out = cv2.VideoWriter(pathOut,cv2.VideoWriter_fourcc(*'DIVX'), fps, (800,600))
         stop = 0
-        while stop<300:
+        while stop<60:
             frame = self.takePicture()
-            out.write(frame)
+            try:
+                if frame.all() != NULL:
+                    out.write(frame)
+            except Exception as e:
+                print(e)
             # cv2.imwrite('python/Camera/vid/'+str(stop)+'.jpg',frame)
             stop += 1
-            time.sleep(1/30)
-            if stop%30==0:
-                print(str(stop/30)+' sec bezig')
-            cv2.imshow('prev',frame)
-            cv2.waitKey(1)
+            # time.sleep(0.06)
+            # if stop%15==0:
+                # print(str(stop/15)+' sec bezig')
+            # cv2.imshow('prev',frame)
+            # cv2.waitKey(1)
         out.release()
         cv2.destroyAllWindows()
 
@@ -227,7 +231,7 @@ for i in os.listdir('python/Camera/tmp_pict'):
     x+=1
 count = x
 
-c.takeVideo(x)
+# c.takeVideo(x)
 
 #c.testCamera()
 thp = threading.Thread(target=c.testCamera)
